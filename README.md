@@ -132,10 +132,14 @@ Each module inside `app/<domain>/` follows the same shape:
 
 ---
 
+## Database schema
+
+https://drawsql.app/teams/noah-110/diagrams/core-features
+
+
 ## Layered Architecture
 
-## Database schema
-https://drawsql.app/teams/noah-110/diagrams/core-features
+---
 
 The request flows strictly in one direction — **never skip a layer from the outside**:
 
