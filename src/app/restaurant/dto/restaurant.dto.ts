@@ -1,0 +1,93 @@
+import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsPhoneNumber,
+  IsString,
+  IsStrongPassword,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
+import { SystemRole } from '../../user/enums';
+import { Type } from 'class-transformer';
+import { RestaurantStatus } from '../enums';
+
+export class CreateRestaurantOwnerDTO {
+  @IsNotEmpty()
+  @IsString()
+  @IsEmail()
+  email!: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @IsPhoneNumber()
+  phone!: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @MaxLength(50)
+  @MinLength(3)
+  name!: string;
+
+  @IsNotEmpty()
+  @IsEnum(SystemRole)
+  role!: SystemRole;
+
+  @IsStrongPassword(
+    {
+      minLength: 8,
+      minLowercase: 1,
+      minUppercase: 1,
+      minNumbers: 1,
+      minSymbols: 1,
+    },
+    {
+      message:
+        'Password is not strong enough. It must contain at least 8 characters, one uppercase letter, one lowercase letter, one number.',
+    },
+  )
+  password!: string;
+}
+
+export class CreateRestaurantDTO {
+  @ValidateNested()
+  @Type(() => CreateRestaurantOwnerDTO)
+  owner!: CreateRestaurantOwnerDTO;
+
+  @IsString()
+  @MinLength(1)
+  name!: string;
+
+  @IsOptional()
+  @IsString()
+  logoURL?: string;
+
+  @IsString()
+  @MinLength(1)
+  primaryCountry!: string;
+}
+
+export class UpdatedRestaurantDTO {
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  name?: string;
+
+  @IsOptional()
+  @IsOptional()
+  @IsString()
+  logoURL?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  primaryCountry?: string;
+}
+
+export class UpdateRestaurantStatusDTO {
+  @IsNotEmpty()
+  @IsEnum(RestaurantStatus)
+  status!: RestaurantStatus;
+}

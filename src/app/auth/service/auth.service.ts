@@ -1,0 +1,210 @@
+import { inject, injectable } from 'tsyringe';
+import { db } from '../../../lib/knex/knex';
+import { logger } from '../../../lib/logger/logger';
+import { toMs } from '../../../pkg/utils/time';
+import { MemberService } from '../../rbac/service/member.service';
+import { RestaurantService } from '../../restaurant/service/restaurant.service';
+import { SystemRole } from '../../user/enums';
+import { UserService } from '../../user/service/user.service';
+import { ForgetResetDTO, LoginDTO, RegisterDTO, ResetPasswordDTO } from '../dto/auth.dto';
+import {
+  CannotSingUpAsSystemAdmin,
+  IncorrectCredentials,
+  InvalidOTPError,
+  RestaurantDataRequiredError,
+  UserAlreadyExistsError,
+} from '../errors';
+import {
+  findLatestPasswordResetByUserId,
+  updatePasswordResetConsumedAt,
+} from '../repository/auth.repository';
+import { generateAccessToken, generateRefreshToken, hashOTP, JwtPayload, verifyRefreshToken } from '../utils';
+import { CredentialsService } from './credentials.service';
+import { tokens } from '../../../lib/di/tokens';
+
+@injectable()
+export class AuthService {
+  constructor(
+    @inject(tokens.UserService) private readonly userService: UserService,
+    @inject(tokens.CredentialsService) private readonly credentialsService: CredentialsService,
+    @inject(tokens.RestaurantService) private readonly restaurantService: RestaurantService,
+    @inject(tokens.MemberService) private readonly memberService: MemberService,
+  ) {}
+
+  register = async (data: RegisterDTO) => {
+    if (data.role === SystemRole.SYSTEM_ADMIN) throw CannotSingUpAsSystemAdmin;
+
+    if (await this.userService.existsByEmail(data.email)) throw UserAlreadyExistsError;
+
+    const hashedPassword = await this.credentialsService.hashPassword(data.password);
+
+    const now = new Date();
+    const trx = await db.transaction();
+    let user = null;
+    let restaurant = null;
+    let restaurantMemberInfo = null;
+    try {
+      // Create user
+      user = await this.userService.create(
+        {
+          email: data.email,
+          phone: data.phone,
+          name: data.name,
+          passwordHash: hashedPassword,
+          systemRole: data.role,
+          createdAt: now,
+          updatedAt: now,
+        },
+        trx,
+      );
+
+      // Create restaurant
+      if (user.systemRole === SystemRole.RESTAURANT_USER) {
+        if (data.restaurant === undefined) throw RestaurantDataRequiredError;
+        restaurant = await this.restaurantService.create(user.id, data.restaurant, trx);
+
+        // Create owner member
+        await this.memberService.createMemberOwner(user.id, restaurant.id, trx);
+
+        const memberData = await this.memberService.getRestaurantContext(user.id, trx);
+        restaurantMemberInfo = {
+          restaurantId: memberData.restaurantId,
+          restaurantRole: memberData.roleName,
+          branchIds: memberData.branchIds,
+        };
+      }
+
+      await trx.commit();
+    } catch (error) {
+      await trx.rollback();
+      throw error;
+    }
+
+    const payload: JwtPayload = {
+      userId: user.id,
+      email: user.email,
+      role: user.systemRole,
+      ...restaurantMemberInfo,
+    };
+    const accessToken = generateAccessToken(payload);
+    const refreshToken = generateRefreshToken(payload);
+
+    return {
+      message: 'User registered successfully',
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        phone: user.phone,
+        role: user.systemRole,
+        createdAt: user.createdAt,
+      },
+      restaurant,
+    };
+  };
+
+  login = async (data: LoginDTO) => {
+    const user = await this.userService.findByEmail(data.email);
+    if (!user) throw IncorrectCredentials;
+    const match = await this.credentialsService.comparePassword(data.password, user.passwordHash);
+
+    if (!match) throw IncorrectCredentials;
+
+    let restaurantMemberInfo = null;
+    if (user.systemRole === SystemRole.RESTAURANT_USER) {
+      const memberData = await this.memberService.getRestaurantContext(user.id);
+      restaurantMemberInfo = {
+        restaurantId: memberData.restaurantId,
+        restaurantRole: memberData.roleName,
+        branchIds: memberData.branchIds,
+      };
+    }
+
+    const payload: JwtPayload = {
+      userId: user.id,
+      email: user.email,
+      role: user.systemRole,
+      ...restaurantMemberInfo,
+    };
+    const accessToken = generateAccessToken(payload);
+    const refreshToken = generateRefreshToken(payload);
+
+    return {
+      message: 'Login successfully',
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        phone: user.phone,
+        role: user.systemRole,
+        createdAt: user.createdAt,
+      },
+    };
+  };
+
+  forgetPassword = async (data: ForgetResetDTO) => {
+    const user = await this.userService.findByEmail(data.email);
+    if (!user)
+      return {
+        message: 'if the account exists, an OTP has been sent to your email',
+      };
+
+    const otp = await this.credentialsService.createOtp(user.id, toMs(10, 'm'));
+
+    // TODO::send otp to user email
+    logger.info(`otp: ${otp} | send to your email`);
+    return {
+      message: 'if the account exists, an OTP has been sent to your email',
+    };
+  };
+
+  refresh = async (refreshToken: string) => {
+    if (!refreshToken) throw IncorrectCredentials;
+    const payload = verifyRefreshToken(refreshToken);
+
+    const accessToken = generateAccessToken({
+      userId: payload.userId,
+      email: payload.email,
+      role: payload.role,
+    });
+
+    return {
+      message: 'Success',
+      accessToken,
+    };
+  };
+
+  // Handles the password reset flow and validates the reset OTP.
+  private resetPasswordLogic = async (data: ResetPasswordDTO) => {
+    const user = await this.userService.findByEmail(data.email);
+    if (!user) throw InvalidOTPError;
+
+    const reset = await findLatestPasswordResetByUserId(user.id);
+    if (!reset) throw InvalidOTPError;
+
+    const inputOTP = hashOTP(data.otp);
+    if (inputOTP !== reset.otpHash || reset.isExpired()) throw InvalidOTPError;
+
+    const hashedPassword = await this.credentialsService.hashPassword(data.newPassword);
+    await this.userService.updatePassword(user.id, hashedPassword);
+    await updatePasswordResetConsumedAt(reset.id);
+    return user;
+  };
+
+  resetPassword = async (data: ResetPasswordDTO) => {
+    await this.resetPasswordLogic(data);
+    return {
+      message: 'Password reset successfully, please login again',
+    };
+  };
+
+  acceptInvite = async (data: ResetPasswordDTO) => {
+    const user = await this.resetPasswordLogic(data);
+    await this.memberService.activateMemberByUserId(user.id);
+    return {
+      message: 'Password reset successfully, please login again',
+    };
+  };
+}

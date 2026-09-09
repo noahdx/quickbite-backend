@@ -1,0 +1,50 @@
+services:
+  postgis:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-core_quickbite}
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-postgres}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+
+  api:
+    build: .
+    environment:
+      NODE_ENV: production
+      PORT: '3000'
+      DB_HOST: postgis
+      DB_PORT: '5432'
+      DB_NAME: ${DB_NAME:-core_quickbite}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      ACCESS_SECRET: ${ACCESS_SECRET:-change-this-access-secret}
+      REFRESH_SECRET: ${REFRESH_SECRET:-change-this-refresh-secret}
+      ACCESS_EXPIRES_IN: '3600'
+      REFRESH_EXPIRES_IN: '604800'
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgis:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+volumes:
+  pgdata:

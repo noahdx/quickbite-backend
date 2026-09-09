@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    name: Lint, typecheck, build & test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgis:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: core_quickbite_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Build
+        run: npm run build
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Prepare test database
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: core_quickbite_ci
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          ACCESS_SECRET: ci-access-secret
+          REFRESH_SECRET: ci-refresh-secret
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          REDIS_PASSWORD: ''
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d core_quickbite_ci -c "CREATE DATABASE core_quickbite_test;"
+          npm run migrate:latest
+
+      - name: Integration tests
+        env:
+          RUN_INTEGRATION: '1'
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: core_quickbite_test
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          ACCESS_SECRET: ci-access-secret
+          REFRESH_SECRET: ci-refresh-secret
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          REDIS_PASSWORD: ''
+        run: npm run test:integration
+
+      - name: Coverage
+        run: npm run test:coverage
