@@ -1,8 +1,0 @@
-1. remove [ await this.restaurantService.assertManagedBy(userId, userRole, restaurantId);] because rbac fix it
-
-1. restaurant.service -> member.service [createOwnerMember]
-1. member.service [createOwnerMember] -> branch.service [findBranchesIds]
-1. branch.service -> restaurant.service [findById]
-
-
-fix config/env -> cors_origins add , to split it 
