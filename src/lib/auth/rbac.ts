@@ -1,9 +1,9 @@
-import { Request, NextFunction, Response } from 'express';
-import { NotAuthenticated } from './errors';
-import { SystemRole } from '../../app/user/enums';
+import { NextFunction, Request, Response } from 'express';
 import { PermissionCacheService } from '../../app/rbac/service/permission-cache.service';
+import { SystemRole } from '../../app/user/enums';
 import { container } from '../di/container';
 import { tokens } from '../di/tokens';
+import { NotAuthenticated } from './errors';
 
 interface IOptions {
   resource: string;
@@ -90,6 +90,7 @@ export function requireBranchAccess(paramName: string = 'branchId') {
         const raw = req.params[paramName] ?? req.query[paramName];
         const id = Number(raw);
         if (!req.user.branchIds?.includes(id)) {
+          console.log('branchesIds', req.user.branchIds);
           return res.status(403).json({ error: 'Permission denied' });
         }
         return next();

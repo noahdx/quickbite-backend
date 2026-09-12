@@ -22,4 +22,5 @@ export const tokens = {
 
   //   lib/infra
   Logger: Symbol.for('Logger'),
+  CacheProvider: Symbol.for('CacheProvider'),
 };

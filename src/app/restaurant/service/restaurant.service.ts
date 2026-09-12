@@ -7,7 +7,7 @@ import { UserService } from '../../user/service/user.service';
 import { CreateRestaurantDTO, UpdatedRestaurantDTO, UpdateRestaurantStatusDTO } from '../dto/restaurant.dto';
 import { Restaurant } from '../entity/restaurant.entity';
 import { RestaurantStatus } from '../enums';
-import { OwnerAlreadyExistsError } from '../errors';
+import { OwnerAlreadyExistsError, RestaurantNotFoundError } from '../errors';
 import {
   createRestaurant,
   findAllRestaurants,
@@ -122,9 +122,9 @@ export class RestaurantService {
 
   updateStatus = async (restaurantId: number, userRole: SystemRole, data: UpdateRestaurantStatusDTO) => {
     if (userRole !== SystemRole.SYSTEM_ADMIN) throw UnAuthorizedError;
+    const restaurant = await this.findById(restaurantId);
 
-    await this.findById(restaurantId);
-
+    if (!restaurant) throw RestaurantNotFoundError;
     const result = await updateRestaurantStatus(restaurantId, data.status);
 
     return {

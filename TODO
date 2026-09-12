@@ -1,0 +1,5 @@
+=> auth service
+
+1. create user
+2. create restaurant
+3. create owner member (userId, restaurantId)

@@ -1,6 +1,6 @@
 import { Knex } from 'knex';
-import { Role } from '../entity/role.entity';
 import { db } from '../../../lib/knex/knex';
+import { Role } from '../entity/role.entity';
 
 interface RoleRow {
   id: number;

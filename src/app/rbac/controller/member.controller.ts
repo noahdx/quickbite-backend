@@ -1,10 +1,10 @@
 import { NextFunction, Request, Response } from 'express';
-import { MemberService } from '../service/member.service';
-import { validateBody } from '../../../lib/validation/validate';
-import { CreateMemberDTO, UpdateMemberDTO } from '../dto/member.dto';
 import { inject, injectable } from 'tsyringe';
 import { tokens } from '../../../lib/di/tokens';
 import { sendSuccess } from '../../../lib/http/response';
+import { validateBody } from '../../../lib/validation/validate';
+import { CreateMemberDTO, UpdateMemberDTO } from '../dto/member.dto';
+import { MemberService } from '../service/member.service';
 
 @injectable()
 export class MemberController {
@@ -44,8 +44,9 @@ export class MemberController {
 
   deleteMember = async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const restaurantId = Number(req.params.restaurantId);
       const memberId = Number(req.params.memberId);
-      const result = await this.memberService.deleteMember(memberId);
+      const result = await this.memberService.deleteMember(memberId, restaurantId);
       sendSuccess(res, result);
     } catch (error) {
       next(error);

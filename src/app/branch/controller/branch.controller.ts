@@ -14,8 +14,9 @@ export class BranchController {
   create = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const restaurantId = Number(req.params.restaurantId);
+      const userId = Number(req.user?.userId);
       const data = await validateBody(CreateBranchDTO, req.body);
-      const result = await this.branchService.create(restaurantId, data);
+      const result = await this.branchService.create(userId, restaurantId, data);
       sendSuccess(res, result);
     } catch (error) {
       next(error);

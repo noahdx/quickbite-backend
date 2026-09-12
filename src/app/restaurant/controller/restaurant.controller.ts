@@ -22,7 +22,7 @@ export class RestaurantController {
 
   getById = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const restaurantId = Number(req.params.id);
+      const restaurantId = Number(req.params.restaurantId);
       const result = await this.restaurantService.findByRestaurant(restaurantId);
       sendSuccess(res, result);
     } catch (error) {
@@ -43,7 +43,7 @@ export class RestaurantController {
 
   update = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const restaurantId = Number(req.params.id);
+      const restaurantId = Number(req.params.restaurantId);
       const data = await validateBody(UpdatedRestaurantDTO, req.body);
       const result = await this.restaurantService.update(restaurantId, data);
       sendSuccess(res, result);
@@ -55,7 +55,7 @@ export class RestaurantController {
   updateStatus = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userRole = req.user?.role as SystemRole;
-      const restaurantId = Number(req.params.id);
+      const restaurantId = Number(req.params.restaurantId);
       const data = await validateBody(UpdateRestaurantStatusDTO, req.body);
       const result = await this.restaurantService.updateStatus(restaurantId, userRole, data);
       sendSuccess(res, result);

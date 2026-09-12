@@ -1,4 +1,5 @@
 import { inject, injectable } from 'tsyringe';
+import { tokens } from '../../../lib/di/tokens';
 import { db } from '../../../lib/knex/knex';
 import { logger } from '../../../lib/logger/logger';
 import { toMs } from '../../../pkg/utils/time';
@@ -20,7 +21,6 @@ import {
 } from '../repository/auth.repository';
 import { generateAccessToken, generateRefreshToken, hashOTP, JwtPayload, verifyRefreshToken } from '../utils';
 import { CredentialsService } from './credentials.service';
-import { tokens } from '../../../lib/di/tokens';
 
 @injectable()
 export class AuthService {
@@ -38,12 +38,12 @@ export class AuthService {
 
     const hashedPassword = await this.credentialsService.hashPassword(data.password);
 
-    const now = new Date();
-    const trx = await db.transaction();
     let user = null;
     let restaurant = null;
     let restaurantMemberInfo = null;
+    const trx = await db.transaction();
     try {
+      const now = new Date();
       // Create user
       user = await this.userService.create(
         {

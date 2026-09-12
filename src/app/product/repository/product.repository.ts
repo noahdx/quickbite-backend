@@ -44,7 +44,7 @@ const PRODUCT_COLUMNS = [
   'id',
   'name',
   'description',
-  'image_url',
+  'img_url',
   'restaurant_id',
   'category_id',
   'created_at',

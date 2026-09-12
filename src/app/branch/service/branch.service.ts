@@ -14,15 +14,17 @@ import {
 } from '../repository/branch.repository';
 import { inject, injectable } from 'tsyringe';
 import { tokens } from '../../../lib/di/tokens';
+import { findMemberByUserId } from '../../rbac/repository/restaurant-member.repository';
+import { setMemberBranches } from '../../rbac/repository/member-branch.repository';
+import { MemberNotFoundError } from '../../rbac/errors';
 
 @injectable()
 export class BranchService {
   constructor(
-    @inject(tokens.RestaurantAccessService)
-    private readonly restaurantAccessService: RestaurantAccessService,
+    @inject(tokens.RestaurantAccessService) private readonly restaurantAccessService: RestaurantAccessService,
   ) {}
 
-  create = async (restaurantId: number, data: CreateBranchDTO) => {
+  create = async (userId: number, restaurantId: number, data: CreateBranchDTO) => {
     const now = new Date();
     const branch = await createBranch({
       restaurantId: restaurantId,
@@ -41,6 +43,16 @@ export class BranchService {
       createdAt: now,
       updatedAt: now,
     });
+
+    const member = await findMemberByUserId(userId);
+    if (!member) throw MemberNotFoundError;
+    await setMemberBranches(member?.id, [
+      {
+        memberId: member.id,
+        branchId: branch.id,
+        createdAt: now,
+      },
+    ]);
 
     return {
       message: 'Branch created successfully',
