@@ -1,11 +1,8 @@
+import { buildPaginationResult, FilterParams, PaginationParams } from '../../../lib/http/pagination/cursor-pagination';
 import { db } from '../../../lib/knex/knex';
 import { CreateProductDTO, UpdateProductDTO } from '../dto/product.dto';
 import { ProductNotFoundError } from '../errors';
-import {
-  createCategory,
-  findCategoriesByRestaurant,
-  findCategoryByName,
-} from '../repository/category.repository';
+import { createCategory, findCategoriesByRestaurant, findCategoryByName } from '../repository/category.repository';
 import { updateBranchDetails } from '../repository/product-branch-details.repository';
 import {
   createProduct,
@@ -81,16 +78,12 @@ export class ProductService {
           name: data.name,
           description: data.description,
           imageUrl: data.imageUrl,
-          createdAt: now,
           updatedAt: now,
         },
         trx,
       );
 
-      if (
-        branchId &&
-        (data.price !== undefined || data.stock !== undefined || data.isAvailable !== undefined)
-      ) {
+      if (branchId && (data.price !== undefined || data.stock !== undefined || data.isAvailable !== undefined)) {
         branchDetails = await updateBranchDetails(
           {
             branchId: branchId,
@@ -122,13 +115,15 @@ export class ProductService {
     };
   };
 
-  findByRestaurant = async (restaurantId: number) => {
-    const products = await findProductsByRestaurant(restaurantId);
+  findByRestaurant = async (
+    restaurantId: number,
+    params: PaginationParams,
+    filters: FilterParams[],
+    allowedFields: Record<string, any>,
+  ) => {
+    const products = await findProductsByRestaurant(restaurantId, params, filters, allowedFields);
 
-    return {
-      message: 'Products retrieved successfully',
-      data: products,
-    };
+    return buildPaginationResult(products, params.limit, params.field);
   };
 
   findByBranch = async (branchId: number) => {

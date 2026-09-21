@@ -97,10 +97,7 @@ export async function findAddressesByUserId(userId: number): Promise<CustomerAdd
 }
 
 export async function clearDefaultByUserId(userId: number): Promise<void> {
-  await db('customer_addresses')
-    .where('user_id', userId)
-    .where('is_default', true)
-    .update({ is_default: false });
+  await db('customer_addresses').where('user_id', userId).where('is_default', true).update({ is_default: false });
 }
 
 export async function deleteAddress(id: number): Promise<void> {

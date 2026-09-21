@@ -17,10 +17,7 @@ function toEntity(row: any) {
   });
 }
 
-export async function createRestaurantMember(
-  data: Partial<RestaurantMember>,
-  conn: Knex = db,
-): Promise<RestaurantMember> {
+export async function createRestaurantMember(data: Partial<RestaurantMember>, conn: Knex = db): Promise<RestaurantMember> {
   const [row] = await conn('restaurant_members')
     .insert({
       user_id: data.userId,
@@ -44,13 +41,12 @@ export async function activateMemberByUserId(userId: number): Promise<void> {
 
 export async function findRestaurantMemberWithRole(
   userId: number,
-  conn: Knex = db,
 ): Promise<{ memberId: number; restaurantId: number; roleName: string }> {
-  const row = await conn('restaurant_members as  rm')
+  const row = await db('restaurant_members as  rm')
     .select('rm.id', 'rm.restaurant_id', 'r.name as roleName')
     .leftJoin('roles as r', 'r.id', 'rm.role_id')
     .where('rm.user_id', userId)
-    // .andWhere('status', MemberStatus.ACTIVE)
+    .andWhere('rm.status', MemberStatus.ACTIVE)
     .first();
 
   return {
@@ -98,10 +94,7 @@ export async function findMemberByUserId(userId: number): Promise<RestaurantMemb
   return row ? toEntity(row) : null;
 }
 
-export async function updateRestaurantMember(
-  memberId: number,
-  data: Partial<RestaurantMember>,
-): Promise<any> {
+export async function updateRestaurantMember(memberId: number, data: Partial<RestaurantMember>): Promise<any> {
   const mapping: Record<string, unknown> = {};
   mapping.updated_at = data.updatedAt;
   if (data.roleId !== undefined) mapping.role_id = data.roleId;

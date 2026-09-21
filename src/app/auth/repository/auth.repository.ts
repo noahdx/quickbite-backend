@@ -24,10 +24,7 @@ function toEntity(row: PasswordResetRow) {
   });
 }
 
-export async function createPasswordReset(
-  data: Partial<PasswordReset>,
-  conn: Knex = db,
-): Promise<PasswordReset> {
+export async function createPasswordReset(data: Partial<PasswordReset>, conn: Knex = db): Promise<PasswordReset> {
   const [row] = await conn('password_resets')
     .insert({
       user_id: data.userId,

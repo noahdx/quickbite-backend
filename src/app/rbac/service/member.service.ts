@@ -33,18 +33,18 @@ export class MemberService {
     @inject(tokens.CredentialsService) private readonly credentialsService: CredentialsService,
   ) {}
 
-  createMemberOwner = async (userId: number, restaurantId: number, trx: Knex) => {
+  createMemberOwner = async (userId: number, restaurantId: number, trx?: Knex.Transaction) => {
     const ownerRoleId = await findRoleByName('owner');
     if (!ownerRoleId) throw RoleNotFoundError;
-
+    const now = new Date();
     return createRestaurantMember(
       {
         userId,
         restaurantId,
         roleId: ownerRoleId,
         status: MemberStatus.ACTIVE,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: now,
+        updatedAt: now,
       },
       trx,
     );
@@ -137,10 +137,10 @@ export class MemberService {
   };
 
   /** Restaurant context embedded in JWTs: which restaurant, which role, accessible branches. */
-  getRestaurantContext = async (userId: number, trx?: Knex) => {
-    const memberData = await findRestaurantMemberWithRole(userId, trx);
+  getRestaurantContext = async (userId: number) => {
+    const memberData = await findRestaurantMemberWithRole(userId);
     if (!memberData) throw UserNotFoundError;
-    const branchIds = await findBranchIdsByMemberId(memberData.memberId, trx);
+    const branchIds = await findBranchIdsByMemberId(memberData.memberId);
     console.log('------------------------', branchIds);
     return {
       restaurantId: memberData.restaurantId,

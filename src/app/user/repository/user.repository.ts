@@ -15,17 +15,7 @@ interface UserRow {
   deleted_at: Date | null;
 }
 
-const USER_COLUMNS = [
-  'id',
-  'email',
-  'phone',
-  'name',
-  'password_hash',
-  'system_role',
-  'created_at',
-  'updated_at',
-  'deleted_at',
-];
+const USER_COLUMNS = ['id', 'email', 'phone', 'name', 'password_hash', 'system_role', 'created_at', 'updated_at', 'deleted_at'];
 
 function toEntity(row: UserRow): User {
   return new User({

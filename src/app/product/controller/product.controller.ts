@@ -4,7 +4,10 @@ import { validateBody } from '../../../lib/validation/validate';
 import { CreateProductDTO, UpdateProductDTO } from '../dto/product.dto';
 import { inject, injectable } from 'tsyringe';
 import { tokens } from '../../../lib/di/tokens';
-import { sendSuccess } from '../../../lib/http/response';
+import { sendPagination, sendSuccess } from '../../../lib/http/response';
+import { parseFilters, parsePaginationQuery } from '../../../lib/http/pagination/parse-query';
+import { applyCursorPagination } from '../../../lib/http/pagination/cursor-pagination';
+import { readSync } from 'node:fs';
 
 @injectable()
 export class ProductController {
@@ -24,7 +27,9 @@ export class ProductController {
   update = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const productId = Number(req.params.productId);
-      const branchId = Number(req.query.branchId);
+      const branchId = Number(req.params.branchId);
+      console.log('branchId: ', branchId);
+      console.log('productId: ', productId);
       const data = await validateBody(UpdateProductDTO, req.body);
       const result = await this.productService.update(productId, branchId, data);
       sendSuccess(res, result);
@@ -46,8 +51,17 @@ export class ProductController {
   findByRestaurant = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const restaurantId = Number(req.params.restaurantId);
-      const result = await this.productService.findByRestaurant(restaurantId);
-      sendSuccess(res, result);
+      const params = parsePaginationQuery(req.query);
+      const filters = parseFilters(req.query, ['restaurant_id', 'name', 'category_id', 'created_at']);
+      const allowedFields = {
+        name: 'name',
+        restaurantId: 'restaurant_id',
+        categoryId: 'category_id',
+        createdAt: 'created_at',
+      };
+
+      const result = await this.productService.findByRestaurant(restaurantId, params, filters, allowedFields);
+      sendPagination(res, result.data, result.meta);
     } catch (error) {
       next(error);
     }

@@ -24,10 +24,7 @@ function toEntity(row: ProductBranchDetailsRow): ProductBranchDetails {
   });
 }
 
-export async function updateBranchDetails(
-  data: Partial<ProductBranchDetails>,
-  conn: Knex = db,
-): Promise<ProductBranchDetails> {
+export async function updateBranchDetails(data: Partial<ProductBranchDetails>, conn: Knex = db): Promise<ProductBranchDetails> {
   const mapping: Record<string, unknown> = {};
   if (data.price !== undefined) mapping.price = data.price;
   if (data.stock !== undefined) mapping.stock = data.stock;

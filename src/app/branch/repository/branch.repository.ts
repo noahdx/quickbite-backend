@@ -147,10 +147,7 @@ export async function updateBranch(id: number, data: Partial<Branch>): Promise<B
   return toEntity(row);
 }
 
-export async function updateBranchStatus(
-  id: number,
-  data: { isActive?: boolean; commission?: number },
-): Promise<Branch> {
+export async function updateBranchStatus(id: number, data: { isActive?: boolean; commission?: number }): Promise<Branch> {
   const mapping: Record<string, unknown> = {};
   if (data.isActive !== undefined) mapping.is_active = data.isActive;
   if (data.commission !== undefined) mapping.commission = data.commission;

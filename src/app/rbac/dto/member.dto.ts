@@ -1,14 +1,4 @@
-import {
-  IsEmail,
-  IsNotEmpty,
-  IsString,
-  IsArray,
-  IsOptional,
-  IsEnum,
-  IsPhoneNumber,
-  MaxLength,
-  MinLength,
-} from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, IsArray, IsOptional, IsEnum, IsPhoneNumber, MaxLength, MinLength } from 'class-validator';
 import { MemberStatus } from '../enums';
 
 export class CreateMemberDTO {

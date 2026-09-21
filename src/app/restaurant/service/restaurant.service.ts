@@ -18,6 +18,7 @@ import { MemberService } from '../../rbac/service/member.service';
 import { RestaurantAccessService } from './restaurant-access.service';
 import { inject, injectable } from 'tsyringe';
 import { tokens } from '../../../lib/di/tokens';
+import { buildPaginationResult, FilterParams, PaginationParams } from '../../../lib/http/pagination/cursor-pagination';
 
 @injectable()
 export class RestaurantService {
@@ -36,11 +37,11 @@ export class RestaurantService {
     if (userRole !== SystemRole.SYSTEM_ADMIN) throw UnAuthorizedError;
     if (await this.userService.existsByEmail(data.owner.email)) throw OwnerAlreadyExistsError;
 
-    const hashedPassword = await this.credentialsService.hashPassword(data.owner.password);
     const now = new Date();
     const trx = await db.transaction();
     try {
       // Create user
+      const hashedPassword = await this.credentialsService.hashPassword(data.owner.password);
       const user = await this.userService.create(
         {
           email: data.owner.email,
@@ -59,6 +60,7 @@ export class RestaurantService {
         {
           ownerId: user.id,
           name: data.name,
+          status: RestaurantStatus.ACTIVE,
           logoURL: data.logoURL ?? '',
           primaryCountry: data.primaryCountry,
           createdAt: now,
@@ -69,7 +71,7 @@ export class RestaurantService {
       );
 
       // Create owner member
-      this.memberService.createMemberOwner(user.id, restaurant.id, trx);
+      await this.memberService.createMemberOwner(user.id, restaurant.id, trx);
 
       await trx.commit();
 
@@ -89,11 +91,7 @@ export class RestaurantService {
     }
   };
 
-  create = async (
-    userId: number,
-    data: { name: string; logoURL?: string; primaryCountry: string },
-    trx: Knex,
-  ) => {
+  create = async (userId: number, data: { name: string; logoURL?: string; primaryCountry: string }, trx: Knex) => {
     const now = new Date();
     const restaurant = new Restaurant({
       ownerId: userId,
@@ -133,13 +131,10 @@ export class RestaurantService {
     };
   };
 
-  findAll = async () => {
-    const restaurants = await findAllRestaurants();
+  findAll = async (params: PaginationParams, filters: FilterParams[], allowedFields: Record<string, any>) => {
+    const restaurants = await findAllRestaurants(params, filters, allowedFields);
 
-    return {
-      message: 'Restaurants retrieved successfully',
-      data: restaurants,
-    };
+    return buildPaginationResult(restaurants, params.limit, params.field);
   };
 
   findByRestaurant = async (restaurantId: number) => {

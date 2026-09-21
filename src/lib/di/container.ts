@@ -36,10 +36,7 @@ container.registerSingleton<CredentialsService>(tokens.CredentialsService, Crede
 // Controllers
 container.registerSingleton<AuthController>(tokens.AuthController, AuthController);
 container.registerSingleton<BranchController>(tokens.BranchController, BranchController);
-container.registerSingleton<CustomerAddressController>(
-  tokens.CustomerAddressController,
-  CustomerAddressController,
-);
+container.registerSingleton<CustomerAddressController>(tokens.CustomerAddressController, CustomerAddressController);
 container.registerSingleton<ProductController>(tokens.ProductController, ProductController);
 container.registerSingleton<MemberController>(tokens.MemberController, MemberController);
 container.registerSingleton<RestaurantController>(tokens.RestaurantController, RestaurantController);

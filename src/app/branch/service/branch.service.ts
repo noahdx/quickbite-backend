@@ -20,9 +20,7 @@ import { MemberNotFoundError } from '../../rbac/errors';
 
 @injectable()
 export class BranchService {
-  constructor(
-    @inject(tokens.RestaurantAccessService) private readonly restaurantAccessService: RestaurantAccessService,
-  ) {}
+  constructor(@inject(tokens.RestaurantAccessService) private readonly restaurantAccessService: RestaurantAccessService) {}
 
   create = async (userId: number, restaurantId: number, data: CreateBranchDTO) => {
     const now = new Date();

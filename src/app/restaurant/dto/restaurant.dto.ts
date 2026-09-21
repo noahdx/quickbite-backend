@@ -31,10 +31,6 @@ export class CreateRestaurantOwnerDTO {
   @MinLength(3)
   name!: string;
 
-  @IsNotEmpty()
-  @IsEnum(SystemRole)
-  role!: SystemRole;
-
   @IsStrongPassword(
     {
       minLength: 8,

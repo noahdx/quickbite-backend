@@ -1,12 +1,4 @@
-import {
-  IsBoolean,
-  IsEnum,
-  IsLatitude,
-  IsLongitude,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsBoolean, IsEnum, IsLatitude, IsLongitude, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { AddressType } from '../enums';
 
 export class CreateAddressDTO {

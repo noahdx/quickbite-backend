@@ -23,7 +23,7 @@ const schema = z.object({
   CORS_ORIGINS: z.string().default('http://localhost:8080'),
   REDIS_HOST: z.string().default('localhost'),
   REDIS_PORT: z.string().default('6379'),
-  REDIS_PASSWORD: z.string(),
+  REDIS_PASSWORD: z.string().default('12345'),
 });
 
 const parsed = schema.parse(process.env);
@@ -43,8 +43,8 @@ export const env = {
   jwt: {
     accessSecret: parsed.ACCESS_SECRET,
     refreshSecret: parsed.REFRESH_SECRET,
-    accessExpiresIn: Number(parsed.ACCESS_EXPIRES_IN),
-    refreshExpiresIn: Number(parsed.REFRESH_EXPIRES_IN),
+    accessExpiresIn: parsed.ACCESS_EXPIRES_IN,
+    refreshExpiresIn: parsed.REFRESH_EXPIRES_IN,
   },
   migration: {
     directory: path.resolve('../../../', parsed.DB_MIGRATION_DIRECTORY),

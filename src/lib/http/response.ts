@@ -1,15 +1,10 @@
 import { Response } from 'express';
+import { PaginationMeta } from './pagination/cursor-pagination';
 
 export interface AppResponse<T = unknown> {
   success: boolean;
   data?: T;
   meta?: Object;
-}
-
-export interface PaginationMeta {
-  nextCursor: number;
-  hasMore: boolean;
-  count: number;
 }
 
 export function sendSuccess<T>(res: Response, data: T, statusCode: number = 200, meta?: Object) {

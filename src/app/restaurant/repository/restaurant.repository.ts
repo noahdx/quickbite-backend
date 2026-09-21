@@ -2,6 +2,12 @@ import { Knex } from 'knex';
 import { db } from '../../../lib/knex/knex';
 import { Restaurant } from '../entity/restaurant.entity';
 import { RestaurantStatus } from '../enums';
+import {
+  applyCursorPagination,
+  applyFilters,
+  FilterParams,
+  PaginationParams,
+} from '../../../lib/http/pagination/cursor-pagination';
 
 interface RestaurantRow {
   id: number;
@@ -79,8 +85,15 @@ export async function updateRestaurantStatus(id: number, status: string): Promis
   return toEntity(row);
 }
 
-export async function findAllRestaurants(): Promise<Restaurant[]> {
-  const rows = await db('restaurants').select(RESTAURANT_COLUMNS);
+export async function findAllRestaurants(
+  params: PaginationParams,
+  filters: FilterParams[],
+  allowedFields: Record<string, any>,
+): Promise<Restaurant[]> {
+  const query = db('restaurants').select(RESTAURANT_COLUMNS);
+  applyFilters(query, filters);
+  applyCursorPagination(query, params, allowedFields);
+  const rows = await query;
   return rows.map(toEntity);
 }
 

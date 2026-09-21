@@ -10,11 +10,7 @@ export const productRouter = Router();
 const productController = container.resolve<ProductController>(tokens.ProductController);
 
 productRouter.get('/products/:productId', productController.findById);
-productRouter.get(
-  '/branches/:branchId/products',
-  cacheLayer({ branchScoped: true }),
-  productController.findByBranch,
-);
+productRouter.get('/branches/:branchId/products', cacheLayer({ branchScoped: true }), productController.findByBranch);
 productRouter.get(
   '/restaurants/:restaurantId/categories',
   cacheLayer({ restaurantScoped: true }),
@@ -39,7 +35,7 @@ productRouter.post(
 );
 
 productRouter.patch(
-  '/products/:productId',
+  '/branches/:branchId/products/:branchId',
   authenticate,
   requireBranchAccess('branchId'),
   rbac({ resource: 'core:product', action: 'update' }),

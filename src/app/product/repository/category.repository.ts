@@ -22,11 +22,7 @@ function toEntity(row: CategoryRow): ProductCategory {
   });
 }
 
-export async function createCategory(
-  restaurantId: number,
-  name: string,
-  conn: Knex = db,
-): Promise<ProductCategory> {
+export async function createCategory(restaurantId: number, name: string, conn: Knex = db): Promise<ProductCategory> {
   const now = new Date();
   const [row] = await conn('product_categories')
     .insert({
@@ -40,10 +36,7 @@ export async function createCategory(
   return toEntity(row);
 }
 
-export async function findCategoryByName(
-  restaurantId: number,
-  name: string,
-): Promise<ProductCategory | null> {
+export async function findCategoryByName(restaurantId: number, name: string): Promise<ProductCategory | null> {
   const row = await db('product_categories')
     .select(CATEGORY_COLUMNS)
     .where('name', name)

@@ -1,5 +1,30 @@
-=> auth service
+1 cursor-pagination:
+  . interface PaginationParams:
+      cursor
+      limit
+      field
+      sortBy: 'desc' | 'asc'
 
-1. create user
-2. create restaurant
-3. create owner member (userId, restaurantId)
+  . interface filterParams:
+      value
+      field
+      operator:
+
+  - func applyCursorPagination(params: PaginationParams, query: QueryBuilder):
+      if (!params.field) return query;
+      if (params.filter):
+          const op = params.sortBy === 'desc' ? '<' | '>'
+          query = query.where(params.field, op, params.cursor);
+
+      return query.sortBy(params.field, params.sortBy).limit(params.limit + 1);
+
+
+
+------------------------------------------------------------------------------
+fix pagination bug:
+  controller for every path pass allowedFields: {key(name convention): key (camel_case for database)}
+  1.applyCursorPagination(allowedFields)
+  2.buildPaginationResult(...., allowedFields):
+    const dbField = allowedFields.has(params.field) ? allowedFields[params.field] : 'id'
+    if match = allowedFields.has(params.field);
+

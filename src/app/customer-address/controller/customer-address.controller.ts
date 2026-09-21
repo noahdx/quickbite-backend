@@ -8,9 +8,7 @@ import { sendSuccess } from '../../../lib/http/response';
 
 @injectable()
 export class CustomerAddressController {
-  constructor(
-    @inject(tokens.CustomerAddressService) private readonly customerAddressService: CustomerAddressService,
-  ) {}
+  constructor(@inject(tokens.CustomerAddressService) private readonly customerAddressService: CustomerAddressService) {}
 
   getAll = async (req: Request, res: Response, next: NextFunction) => {
     try {

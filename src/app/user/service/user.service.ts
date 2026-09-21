@@ -2,19 +2,13 @@ import { Knex } from 'knex';
 import { UpdateUserDTO } from '../dto/user.dto';
 import { User } from '../entity/user.entity';
 import { UserNotFoundError } from '../errors';
-import {
-  createUser,
-  findUserByEmail,
-  findUserById,
-  updateUser,
-  updateUserPassword,
-} from '../repository/user.repository';
+import { createUser, findUserByEmail, findUserById, updateUser, updateUserPassword } from '../repository/user.repository';
 import { injectable } from 'tsyringe';
 
 @injectable()
 export class UserService {
-  create = async (data: Partial<User>, conn?: Knex) => {
-    return createUser(data, conn);
+  create = async (data: Partial<User>, trx?: Knex.Transaction) => {
+    return createUser(data, trx);
   };
 
   findByEmail = async (email: string) => {

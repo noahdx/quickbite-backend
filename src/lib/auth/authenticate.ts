@@ -3,7 +3,9 @@ import { NotAuthenticated } from './errors';
 import { verifyAccessToken } from '../../app/auth/utils';
 export function authenticate(req: Request, _res: Response, next: NextFunction) {
   const token = req.cookies.access_token;
-  if (!token) throw NotAuthenticated;
+  if (!token) {
+    return next(NotAuthenticated);
+  }
   req.user = verifyAccessToken(token);
   next();
 }

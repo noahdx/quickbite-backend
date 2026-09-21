@@ -10,12 +10,7 @@ const restaurantController = container.resolve<RestaurantController>(tokens.Rest
 
 restaurantRouter.get('/', restaurantController.getAll);
 restaurantRouter.get('/:id', restaurantController.getById);
-restaurantRouter.post(
-  '/',
-  authenticate,
-  rbac({ resource: 'core:restaurant', action: 'create' }),
-  restaurantController.create,
-);
+restaurantRouter.post('/', authenticate, rbac({ resource: 'core:restaurant', action: 'create' }), restaurantController.create);
 
 restaurantRouter.patch(
   '/:restaurantId',

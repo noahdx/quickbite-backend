@@ -15,10 +15,7 @@ import {
   RestaurantDataRequiredError,
   UserAlreadyExistsError,
 } from '../errors';
-import {
-  findLatestPasswordResetByUserId,
-  updatePasswordResetConsumedAt,
-} from '../repository/auth.repository';
+import { findLatestPasswordResetByUserId, updatePasswordResetConsumedAt } from '../repository/auth.repository';
 import { generateAccessToken, generateRefreshToken, hashOTP, JwtPayload, verifyRefreshToken } from '../utils';
 import { CredentialsService } from './credentials.service';
 
@@ -40,11 +37,10 @@ export class AuthService {
 
     let user = null;
     let restaurant = null;
-    let restaurantMemberInfo = null;
+    let restaurantMemberInfo: { restaurantId?: number; restaurantRole?: string; branchIds?: number[] } = {};
     const trx = await db.transaction();
     try {
       const now = new Date();
-      // Create user
       user = await this.userService.create(
         {
           email: data.email,
@@ -58,19 +54,17 @@ export class AuthService {
         trx,
       );
 
-      // Create restaurant
+      // check if the type of user is restaurant, then call restaurant service to create a new restaurant
       if (user.systemRole === SystemRole.RESTAURANT_USER) {
         if (data.restaurant === undefined) throw RestaurantDataRequiredError;
         restaurant = await this.restaurantService.create(user.id, data.restaurant, trx);
 
-        // Create owner member
+        // insert the owner member via member service
         await this.memberService.createMemberOwner(user.id, restaurant.id, trx);
-
-        const memberData = await this.memberService.getRestaurantContext(user.id, trx);
         restaurantMemberInfo = {
-          restaurantId: memberData.restaurantId,
-          restaurantRole: memberData.roleName,
-          branchIds: memberData.branchIds,
+          restaurantId: restaurant.id,
+          restaurantRole: 'owner',
+          branchIds: [],
         };
       }
 
@@ -80,6 +74,7 @@ export class AuthService {
       throw error;
     }
 
+    // create access token , refresh token
     const payload: JwtPayload = {
       userId: user.id,
       email: user.email,
@@ -111,7 +106,7 @@ export class AuthService {
 
     if (!match) throw IncorrectCredentials;
 
-    let restaurantMemberInfo = null;
+    let restaurantMemberInfo: { restaurantId?: number; restaurantRole?: string; branchIds?: number[] } = {};
     if (user.systemRole === SystemRole.RESTAURANT_USER) {
       const memberData = await this.memberService.getRestaurantContext(user.id);
       restaurantMemberInfo = {
@@ -164,10 +159,21 @@ export class AuthService {
     if (!refreshToken) throw IncorrectCredentials;
     const payload = verifyRefreshToken(refreshToken);
 
+    let restaurantMemberInfo: { restaurantId?: number; restaurantRole?: string; branchIds?: number[] } = {};
+    if (payload.role === SystemRole.RESTAURANT_USER) {
+      const memberData = await this.memberService.getRestaurantContext(payload.userId);
+      restaurantMemberInfo = {
+        restaurantId: memberData.restaurantId,
+        restaurantRole: memberData.roleName,
+        branchIds: memberData.branchIds,
+      };
+    }
+
     const accessToken = generateAccessToken({
       userId: payload.userId,
       email: payload.email,
       role: payload.role,
+      ...restaurantMemberInfo,
     });
 
     return {

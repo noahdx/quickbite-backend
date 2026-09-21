@@ -37,7 +37,7 @@ export function rbac(options: IOptions) {
         const permission = await permissionService.getPermissions(req.user.restaurantRole!);
         if (!permissionService.hasPermission(permission, resource, action)) {
           return res.status(403).json({
-            error: 'Permission denied',
+            message: 'Permission denied',
           });
         }
         // pass
@@ -46,7 +46,7 @@ export function rbac(options: IOptions) {
 
       // if not restaurant ser -> throw err
       return res.status(403).json({
-        error: 'Permission denied',
+        message: 'Permission denied',
       });
     } catch (error) {
       next(error);
@@ -65,14 +65,14 @@ export function requireRestaurantMember(paramName: string = 'restaurantId') {
     if (req.user.role === SystemRole.RESTAURANT_USER) {
       if (Number(req.user.restaurantId) !== Number(req.params[paramName])) {
         return res.status(403).json({
-          error: 'Permission denied',
+          message: 'Permission denied',
         });
       }
       return next();
     }
 
     return res.status(403).json({
-      error: 'Permission denied',
+      message: 'Permission denied',
     });
   };
 }
@@ -90,14 +90,13 @@ export function requireBranchAccess(paramName: string = 'branchId') {
         const raw = req.params[paramName] ?? req.query[paramName];
         const id = Number(raw);
         if (!req.user.branchIds?.includes(id)) {
-          console.log('branchesIds', req.user.branchIds);
-          return res.status(403).json({ error: 'Permission denied' });
+          return res.status(403).json({ message: 'Permission denied 1' });
         }
         return next();
       }
 
       return res.status(403).json({
-        error: 'Permission denied',
+        message: 'Permission denied',
       });
     } catch (error) {
       next(error);

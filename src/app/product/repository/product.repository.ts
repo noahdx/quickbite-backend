@@ -1,6 +1,12 @@
 import { Knex } from 'knex';
 import { db } from '../../../lib/knex/knex';
 import { Product } from '../entity/product.entity';
+import {
+  applyCursorPagination,
+  applyFilters,
+  FilterParams,
+  PaginationParams,
+} from '../../../lib/http/pagination/cursor-pagination';
 
 interface ProductRow {
   id: number;
@@ -115,11 +121,21 @@ export async function findProductById(id: number): Promise<Product | null> {
   return row ? toEntity(row) : null;
 }
 
-export async function findProductsByRestaurant(restaurantId: number): Promise<Product[]> {
-  const rows = await db('products')
-    .select(PRODUCT_COLUMNS)
-    .where('restaurant_id', restaurantId)
-    .whereNull('deleted_at');
+export async function findProductsByRestaurant(
+  restaurantId: number,
+  params: PaginationParams,
+  filters: FilterParams[],
+  allowedFields: Record<string, any>,
+): Promise<Product[]> {
+  const query = db('products').select(PRODUCT_COLUMNS).where('restaurant_id', restaurantId).whereNull('deleted_at');
+
+  applyFilters(query, filters);
+  applyCursorPagination(query, params, allowedFields);
+  const rows = await query;
+  // const rows = await db('products')
+  //   .select(PRODUCT_COLUMNS)
+  //   .where('restaurant_id', restaurantId)
+  //   .whereNull('deleted_at');
   return rows.map(toEntity);
 }
 
@@ -133,9 +149,9 @@ export async function findProductsByBranch(branchId: number): Promise<IProductBy
       'p.id',
       'p.name',
       'p.description',
-      'p.image_url',
+      'p.img_url',
       'p.restaurant_id',
-      'p.category_id',
+      'p.category_id', 
       'pc.name as category_name',
       'pbd.price',
       'pbd.stock',

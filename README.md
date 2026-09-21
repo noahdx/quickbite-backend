@@ -136,7 +136,6 @@ Each module inside `app/<domain>/` follows the same shape:
 
 https://drawsql.app/teams/noah-110/diagrams/core-features
 
-
 ## Layered Architecture
 
 ---

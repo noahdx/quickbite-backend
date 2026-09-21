@@ -5,9 +5,7 @@ import { tokens } from '../../lib/di/tokens';
 import { CustomerAddressController } from './controller/customer-address.controller';
 
 export const customerAddressRouter = Router();
-const customerAddressController = container.resolve<CustomerAddressController>(
-  tokens.CustomerAddressController,
-);
+const customerAddressController = container.resolve<CustomerAddressController>(tokens.CustomerAddressController);
 
 customerAddressRouter.get('/', authenticate, customerAddressController.getAll);
 customerAddressRouter.post('/', authenticate, customerAddressController.create);

@@ -5,16 +5,24 @@ import { CreateRestaurantDTO, UpdatedRestaurantDTO, UpdateRestaurantStatusDTO } 
 import { SystemRole } from '../../user/enums';
 import { inject, injectable } from 'tsyringe';
 import { tokens } from '../../../lib/di/tokens';
-import { sendSuccess } from '../../../lib/http/response';
+import { sendPagination, sendSuccess } from '../../../lib/http/response';
+import { parseFilters, parsePaginationQuery } from '../../../lib/http/pagination/parse-query';
 
 @injectable()
 export class RestaurantController {
   constructor(@inject(tokens.RestaurantService) private readonly restaurantService: RestaurantService) {}
 
-  getAll = async (_req: Request, res: Response, next: NextFunction) => {
+  getAll = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await this.restaurantService.findAll();
-      sendSuccess(res, result);
+      const params = parsePaginationQuery(req.query);
+      const filters = parseFilters(req.query, ['id', 'name', 'status']);
+      const allowedFields = {
+        id: 'id',
+        name: 'name',
+        status: 'status',
+      };
+      const result = await this.restaurantService.findAll(params, filters, allowedFields);
+      sendPagination(res, result.data, result.meta);
     } catch (error) {
       next(error);
     }
