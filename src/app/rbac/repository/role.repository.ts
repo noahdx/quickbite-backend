@@ -24,7 +24,7 @@ function toEntity(row: RoleRow): Role {
   });
 }
 
-export async function findRoleByName(name: string, conn: Knex = db): Promise<number | null> {
+export async function findRoleIdByName(name: string, conn: Knex = db): Promise<number | null> {
   const row = await conn('roles').where('name', name).select('id').first();
   return row ? (row.id as number) : null;
 }

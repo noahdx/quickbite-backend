@@ -6,37 +6,10 @@ import { inject, injectable } from 'tsyringe';
 import { tokens } from '../../../lib/di/tokens';
 import { sendPagination, sendSuccess } from '../../../lib/http/response';
 import { parseFilters, parsePaginationQuery } from '../../../lib/http/pagination/parse-query';
-import { applyCursorPagination } from '../../../lib/http/pagination/cursor-pagination';
-import { readSync } from 'node:fs';
 
 @injectable()
 export class ProductController {
   constructor(@inject(tokens.ProductService) private readonly productService: ProductService) {}
-
-  create = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const restaurantId = Number(req.params.restaurantId);
-      const data = await validateBody(CreateProductDTO, req.body);
-      const result = await this.productService.create(restaurantId, data);
-      sendSuccess(res, result);
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  update = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const productId = Number(req.params.productId);
-      const branchId = Number(req.params.branchId);
-      console.log('branchId: ', branchId);
-      console.log('productId: ', productId);
-      const data = await validateBody(UpdateProductDTO, req.body);
-      const result = await this.productService.update(productId, branchId, data);
-      sendSuccess(res, result);
-    } catch (error) {
-      next(error);
-    }
-  };
 
   findById = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -81,6 +54,29 @@ export class ProductController {
     try {
       const restaurantId = Number(req.params.restaurantId);
       const result = await this.productService.findCategories(restaurantId);
+      sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  create = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const restaurantId = Number(req.params.restaurantId);
+      const data = await validateBody(CreateProductDTO, req.body);
+      const result = await this.productService.create(restaurantId, data);
+      sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  update = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const productId = Number(req.params.productId);
+      const branchId = Number(req.params.branchId);
+      const data = await validateBody(UpdateProductDTO, req.body);
+      const result = await this.productService.update(productId, data, branchId);
       sendSuccess(res, result);
     } catch (error) {
       next(error);

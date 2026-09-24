@@ -3,21 +3,9 @@ import { db } from '../../../lib/knex/knex';
 import { User } from '../entity/user.entity';
 import { SystemRole } from '../enums';
 
-interface UserRow {
-  id: number;
-  email: string;
-  phone: string;
-  name: string;
-  password_hash: string;
-  system_role: string;
-  created_at: Date;
-  updated_at: Date;
-  deleted_at: Date | null;
-}
-
 const USER_COLUMNS = ['id', 'email', 'phone', 'name', 'password_hash', 'system_role', 'created_at', 'updated_at', 'deleted_at'];
 
-function toEntity(row: UserRow): User {
+function toEntity(row: any) {
   return new User({
     id: row.id,
     email: row.email,

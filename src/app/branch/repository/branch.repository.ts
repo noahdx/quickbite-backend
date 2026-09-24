@@ -2,40 +2,6 @@ import { db } from '../../../lib/knex/knex';
 import { Branch } from '../entity/branch.entity';
 import { Currency } from '../enums';
 
-interface BranchRow {
-  id: number;
-  restaurant_id: number;
-  country_code: string;
-  address_text: string;
-  label: string;
-  lng: string;
-  lat: string;
-  is_active: boolean;
-  accept_orders: boolean;
-  opens_at: string;
-  closes_at: string;
-  delivery_radius: number;
-  currency: string;
-  commission: number;
-  created_at: Date;
-  updated_at: Date;
-}
-
-// Special-case row shape for the nearby-branches query: joins restaurant + branch.
-interface NearbyBranchRow {
-  id: string;
-  restaurant_id: string;
-  address_text: string;
-  label: string;
-  lng: string;
-  lat: string;
-  is_active: boolean;
-  accept_orders: boolean;
-  currency: string;
-  restaurant_name: string;
-  restaurant_logo_url: string;
-}
-
 export interface NearbyBranch {
   id: number;
   restaurantId: number;
@@ -69,7 +35,7 @@ const BRANCH_COLUMNS = [
   'commission',
 ];
 
-function toEntity(row: BranchRow): Branch {
+function toEntity(row: any) {
   return new Branch({
     id: row.id,
     restaurantId: row.restaurant_id,
@@ -90,7 +56,7 @@ function toEntity(row: BranchRow): Branch {
   });
 }
 
-function toNearbyBranch(row: NearbyBranchRow): NearbyBranch {
+function toNearbyBranch(row: any) {
   return {
     id: Number(row.id),
     restaurantId: Number(row.restaurant_id),
@@ -132,6 +98,8 @@ export async function createBranch(data: Partial<Branch>): Promise<Branch> {
 
 export async function updateBranch(id: number, data: Partial<Branch>): Promise<Branch> {
   const mapping: Record<string, unknown> = {};
+  mapping.updated_at = new Date();
+
   if (data.addressText !== undefined) mapping.address_text = data.addressText;
   if (data.label !== undefined) mapping.label = data.label;
   if (data.lng !== undefined) mapping.lng = data.lng;
@@ -149,6 +117,8 @@ export async function updateBranch(id: number, data: Partial<Branch>): Promise<B
 
 export async function updateBranchStatus(id: number, data: { isActive?: boolean; commission?: number }): Promise<Branch> {
   const mapping: Record<string, unknown> = {};
+  mapping.updated_at = new Date();
+
   if (data.isActive !== undefined) mapping.is_active = data.isActive;
   if (data.commission !== undefined) mapping.commission = data.commission;
   const [row] = await db('restaurant_branches').where('id', id).update(mapping).returning(BRANCH_COLUMNS);
@@ -195,6 +165,6 @@ export async function findNearbyBranches(lng: number, lat: number): Promise<Near
     [lng, lat],
   );
 
-  const rows = result.rows as NearbyBranchRow[];
-  return rows.map(toNearbyBranch);
+  // const rows = result.rows as NearbyBranchRow[];
+  return result.rows.map(toNearbyBranch);
 }

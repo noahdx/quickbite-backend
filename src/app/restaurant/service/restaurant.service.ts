@@ -2,7 +2,6 @@ import { Knex } from 'knex';
 import { UnAuthorizedError } from '../../../lib/auth/errors';
 import { db } from '../../../lib/knex/knex';
 import { SystemRole } from '../../user/enums';
-import { CredentialsService } from '../../auth/service/credentials.service';
 import { UserService } from '../../user/service/user.service';
 import { CreateRestaurantDTO, UpdatedRestaurantDTO, UpdateRestaurantStatusDTO } from '../dto/restaurant.dto';
 import { Restaurant } from '../entity/restaurant.entity';
@@ -25,32 +24,45 @@ export class RestaurantService {
   constructor(
     @inject(tokens.UserService) private readonly userService: UserService,
     @inject(tokens.MemberService) private readonly memberService: MemberService,
-    @inject(tokens.CredentialsService) private readonly credentialsService: CredentialsService,
     @inject(tokens.RestaurantAccessService) private readonly restaurantAccessService: RestaurantAccessService,
   ) {}
 
-  findById = async (restaurantId: number): Promise<Restaurant> => {
-    return this.restaurantAccessService.findById(restaurantId);
+  findAll = async (params: PaginationParams, filters: FilterParams[], allowedFields: Record<string, any>) => {
+    const restaurants = await findAllRestaurants(params, filters, allowedFields);
+
+    return buildPaginationResult(restaurants, params.limit, params.field);
+  };
+
+  findByRestaurantId = async (restaurantId: number) => {
+    const restaurant = await this.restaurantAccessService.findById(restaurantId);
+
+    return {
+      message: 'Restaurant retrieved successfully',
+      data: restaurant,
+    };
   };
 
   createWithOwner = async (userRole: SystemRole, data: CreateRestaurantDTO) => {
-    if (userRole !== SystemRole.SYSTEM_ADMIN) throw UnAuthorizedError;
-    if (await this.userService.existsByEmail(data.owner.email)) throw OwnerAlreadyExistsError;
+    if (userRole !== SystemRole.SYSTEM_ADMIN) {
+      throw UnAuthorizedError;
+    }
+
+    const existsUser = await this.userService.existsByEmail(data.owner.email);
+    if (existsUser) {
+      throw OwnerAlreadyExistsError;
+    }
 
     const now = new Date();
     const trx = await db.transaction();
     try {
       // Create user
-      const hashedPassword = await this.credentialsService.hashPassword(data.owner.password);
       const user = await this.userService.create(
         {
           email: data.owner.email,
           phone: data.owner.phone,
           name: data.owner.name,
-          passwordHash: hashedPassword,
-          systemRole: SystemRole.RESTAURANT_USER,
-          createdAt: now,
-          updatedAt: now,
+          password: data.owner.password,
+          role: SystemRole.RESTAURANT_USER,
         },
         trx,
       );
@@ -71,7 +83,7 @@ export class RestaurantService {
       );
 
       // Create owner member
-      await this.memberService.createMemberOwner(user.id, restaurant.id, trx);
+      await this.memberService.createOwnerMember(user.id, restaurant.id, trx);
 
       await trx.commit();
 
@@ -91,7 +103,7 @@ export class RestaurantService {
     }
   };
 
-  create = async (userId: number, data: { name: string; logoURL?: string; primaryCountry: string }, trx: Knex) => {
+  create = async (userId: number, data: { name: string; logoURL?: string; primaryCountry: string }, trx: Knex.Transaction) => {
     const now = new Date();
     const restaurant = new Restaurant({
       ownerId: userId,
@@ -108,41 +120,34 @@ export class RestaurantService {
   };
 
   update = async (restaurantId: number, data: UpdatedRestaurantDTO) => {
-    await this.findById(restaurantId);
+    const restaurant = await this.restaurantAccessService.findById(restaurantId);
+    if (!restaurant) {
+      throw RestaurantNotFoundError;
+    }
 
-    const result = await updateRestaurant(restaurantId, data);
+    const updatedRestaurant = await updateRestaurant(restaurantId, data);
 
     return {
       message: 'Restaurant updated successfully',
-      data: result,
+      data: updatedRestaurant,
     };
   };
 
   updateStatus = async (restaurantId: number, userRole: SystemRole, data: UpdateRestaurantStatusDTO) => {
-    if (userRole !== SystemRole.SYSTEM_ADMIN) throw UnAuthorizedError;
-    const restaurant = await this.findById(restaurantId);
+    if (userRole !== SystemRole.SYSTEM_ADMIN) {
+      throw UnAuthorizedError;
+    }
 
-    if (!restaurant) throw RestaurantNotFoundError;
-    const result = await updateRestaurantStatus(restaurantId, data.status);
+    const restaurant = await this.restaurantAccessService.findById(restaurantId);
+    if (!restaurant) {
+      throw RestaurantNotFoundError;
+    }
+
+    const updatedRestaurant = await updateRestaurantStatus(restaurantId, data.status);
 
     return {
       message: 'Restaurant status updated successfully',
-      data: result,
-    };
-  };
-
-  findAll = async (params: PaginationParams, filters: FilterParams[], allowedFields: Record<string, any>) => {
-    const restaurants = await findAllRestaurants(params, filters, allowedFields);
-
-    return buildPaginationResult(restaurants, params.limit, params.field);
-  };
-
-  findByRestaurant = async (restaurantId: number) => {
-    const restaurant = await this.findById(restaurantId);
-
-    return {
-      message: 'Restaurant retrieved successfully',
-      data: restaurant,
+      data: updatedRestaurant,
     };
   };
 }

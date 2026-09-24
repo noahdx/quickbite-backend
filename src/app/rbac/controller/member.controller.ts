@@ -33,9 +33,10 @@ export class MemberController {
 
   update = async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const restaurantId = Number(req.params.restaurantId);
       const memberId = Number(req.params.memberId);
       const data = await validateBody(UpdateMemberDTO, req.body);
-      const result = await this.memberService.updateMember(memberId, data);
+      const result = await this.memberService.updateMember(restaurantId, memberId, data);
       sendSuccess(res, result);
     } catch (error) {
       next(error);

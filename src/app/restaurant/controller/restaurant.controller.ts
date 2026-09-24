@@ -31,7 +31,7 @@ export class RestaurantController {
   getById = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const restaurantId = Number(req.params.restaurantId);
-      const result = await this.restaurantService.findByRestaurant(restaurantId);
+      const result = await this.restaurantService.findByRestaurantId(restaurantId);
       sendSuccess(res, result);
     } catch (error) {
       next(error);

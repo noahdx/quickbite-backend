@@ -39,7 +39,9 @@ export class CustomerAddressService {
   };
 
   create = async (userId: number, data: CreateAddressDTO) => {
-    if (data.isDefault) clearDefaultByUserId(userId);
+    if (data.isDefault) {
+      await clearDefaultByUserId(userId);
+    }
     const address = await createAddress({ userId, ...data });
 
     return {
@@ -54,19 +56,23 @@ export class CustomerAddressService {
       throw AddressNotFoundError;
     }
 
-    if (data.isDefault) clearDefaultByUserId(userId);
+    if (data.isDefault) {
+      await clearDefaultByUserId(userId);
+    }
 
     const updated = await updateAddress(addressId, data);
 
     return {
       message: 'Address updated successfully',
-      data: updated,
+      data: toResponse(updated),
     };
   };
 
   remove = async (userId: number, addressId: number) => {
     const address = await findAddressById(addressId);
-    if (!address || address.userId !== userId) throw AddressNotFoundError;
+    if (!address || address.userId !== userId) {
+      throw AddressNotFoundError;
+    }
 
     await deleteAddress(addressId);
 
@@ -75,5 +81,3 @@ export class CustomerAddressService {
     };
   };
 }
-
-export const customerAddressService = new CustomerAddressService();

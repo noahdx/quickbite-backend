@@ -2,18 +2,9 @@ import { Knex } from 'knex';
 import { db } from '../../../lib/knex/knex';
 import { PasswordReset } from '../entity/auth.entity';
 
-interface PasswordResetRow {
-  id: number;
-  user_id: number;
-  otp_hash: string;
-  expires_at: Date;
-  consumed_at: Date | null;
-  created_at: Date;
-}
-
 const PASSWORD_RESET_COLUMNS = ['id', 'user_id', 'otp_hash', 'expires_at', 'consumed_at', 'created_at'];
 
-function toEntity(row: PasswordResetRow) {
+function toEntity(row: any) {
   return new PasswordReset({
     id: row.id,
     userId: row.user_id,

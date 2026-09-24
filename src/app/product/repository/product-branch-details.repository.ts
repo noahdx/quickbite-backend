@@ -2,18 +2,9 @@ import { Knex } from 'knex';
 import { db } from '../../../lib/knex/knex';
 import { ProductBranchDetails } from '../entity/product-branch-details.entity';
 
-interface ProductBranchDetailsRow {
-  id: number;
-  branch_id: number;
-  product_id: number;
-  price: string;
-  stock: number;
-  is_available: boolean;
-}
-
 const PBD_COLUMNS = ['id', 'branch_id', 'product_id', 'price', 'stock', 'is_available'];
 
-function toEntity(row: ProductBranchDetailsRow): ProductBranchDetails {
+function toEntity(row: any) {
   return new ProductBranchDetails({
     id: row.id,
     branchId: row.branch_id,

@@ -1,29 +1,29 @@
 import { Knex } from 'knex';
 import { UpdateUserDTO } from '../dto/user.dto';
-import { User } from '../entity/user.entity';
 import { UserNotFoundError } from '../errors';
-import { createUser, findUserByEmail, findUserById, updateUser, updateUserPassword } from '../repository/user.repository';
+import {
+  createUser,
+  findUserByEmail,
+  findUserById,
+  findUserExistsByEmail,
+  updateUser,
+  updateUserPassword,
+} from '../repository/user.repository';
 import { injectable } from 'tsyringe';
+import { SystemRole } from '../enums';
+import { UserAlreadyExistsError } from '../../auth/errors';
+import { hashPassword } from '../../auth/utils';
+
+export interface CreateUserData {
+  email: string;
+  phone: string;
+  name: string;
+  password: string;
+  role: SystemRole;
+}
 
 @injectable()
 export class UserService {
-  create = async (data: Partial<User>, trx?: Knex.Transaction) => {
-    return createUser(data, trx);
-  };
-
-  findByEmail = async (email: string) => {
-    return findUserByEmail(email);
-  };
-
-  existsByEmail = async (email: string) => {
-    const user = await findUserByEmail(email);
-    return user !== null;
-  };
-
-  updatePassword = async (userId: number, passwordHash: string) => {
-    await updateUserPassword(userId, passwordHash);
-  };
-
   getUserById = async (id: number) => {
     const user = await findUserById(id);
     if (!user) throw UserNotFoundError;
@@ -38,6 +38,36 @@ export class UserService {
         createdAt: user.createdAt,
       },
     };
+  };
+
+  findByEmail = async (email: string) => {
+    return findUserByEmail(email);
+  };
+
+  existsByEmail = async (email: string) => {
+    const user = await findUserByEmail(email);
+    return user !== null;
+  };
+
+  create = async (data: CreateUserData, trx?: Knex.Transaction) => {
+    const existing = await findUserExistsByEmail(data.email);
+    if (existing) throw UserAlreadyExistsError;
+
+    const hashedPassword = await hashPassword(data.password!);
+
+    const now = new Date();
+    return await createUser(
+      {
+        email: data.email,
+        phone: data.phone,
+        name: data.name,
+        passwordHash: hashedPassword,
+        systemRole: data.role,
+        createdAt: now,
+        updatedAt: now,
+      },
+      trx,
+    );
   };
 
   updateProfile = async (userId: number, data: UpdateUserDTO) => {
@@ -55,5 +85,9 @@ export class UserService {
         createdAt: updated.createdAt,
       },
     };
+  };
+
+  updatePassword = async (userId: number, passwordHash: string) => {
+    await updateUserPassword(userId, passwordHash);
   };
 }

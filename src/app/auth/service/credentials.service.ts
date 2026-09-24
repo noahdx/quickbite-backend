@@ -9,8 +9,7 @@ export class CredentialsService {
 
   comparePassword = comparePassword;
 
-  /** Generates an OTP, persists its hash and returns the plain-text OTP (to be emailed/logged). */
-  createOtp = async (userId: number, ttlMs: number, conn: Knex = db): Promise<string> => {
+  createOtp = async (userId: number, trx?: Knex.Transaction): Promise<string> => {
     const otp = generateOTP();
     const hashedOTP = hashOTP(otp);
 
@@ -19,15 +18,11 @@ export class CredentialsService {
         userId,
         otpHash: hashedOTP,
         createdAt: new Date(),
-        expiresAt: new Date(Date.now() + ttlMs),
+        expiresAt: new Date(Date.now() + toMs(1, 'h')),
       },
-      conn,
+      trx,
     );
 
     return otp;
-  };
-
-  createInviteOtp = async (userId: number, conn: Knex = db): Promise<string> => {
-    return this.createOtp(userId, toMs(1, 'h'), conn);
   };
 }

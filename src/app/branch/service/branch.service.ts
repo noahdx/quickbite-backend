@@ -1,6 +1,3 @@
-import { UnAuthorizedError } from '../../../lib/auth/errors';
-import { SystemRole } from '../../user/enums';
-import { RestaurantAccessService } from '../../restaurant/service/restaurant-access.service';
 import { CreateBranchDTO, UpdateBranchDTO, UpdateBranchStatusDTO } from '../dto/branch.dto';
 import { BranchNotFoundError } from '../errors';
 import {
@@ -12,15 +9,33 @@ import {
   updateBranch,
   updateBranchStatus,
 } from '../repository/branch.repository';
-import { inject, injectable } from 'tsyringe';
-import { tokens } from '../../../lib/di/tokens';
+import { injectable } from 'tsyringe';
 import { findMemberByUserId } from '../../rbac/repository/restaurant-member.repository';
 import { setMemberBranches } from '../../rbac/repository/member-branch.repository';
 import { MemberNotFoundError } from '../../rbac/errors';
 
 @injectable()
 export class BranchService {
-  constructor(@inject(tokens.RestaurantAccessService) private readonly restaurantAccessService: RestaurantAccessService) {}
+  findByRestaurant = async (restaurantId: number) => {
+    const branches = await findBranchesByRestaurantId(restaurantId);
+
+    return {
+      message: 'Branches retrieved successfully',
+      data: branches,
+    };
+  };
+
+  findNearby = async (lng: number, lat: number) => {
+    const branches = await findNearbyBranches(lng, lat);
+    return {
+      message: 'Branches retrieved successfully',
+      data: branches,
+    };
+  };
+
+  findByIds = async (ids: number[]) => {
+    return await findBranchesIds(ids);
+  };
 
   create = async (userId: number, restaurantId: number, data: CreateBranchDTO) => {
     const now = new Date();
@@ -43,7 +58,10 @@ export class BranchService {
     });
 
     const member = await findMemberByUserId(userId);
-    if (!member) throw MemberNotFoundError;
+    if (!member) {
+      throw MemberNotFoundError;
+    }
+
     await setMemberBranches(member?.id, [
       {
         memberId: member.id,
@@ -60,7 +78,9 @@ export class BranchService {
 
   update = async (branchId: number, data: UpdateBranchDTO) => {
     const branch = await findBranchById(branchId);
-    if (!branch) throw BranchNotFoundError;
+    if (!branch) {
+      throw BranchNotFoundError;
+    }
 
     const updated = await updateBranch(branchId, data);
 
@@ -70,11 +90,11 @@ export class BranchService {
     };
   };
 
-  updateStatus = async (userRole: SystemRole, branchId: number, data: UpdateBranchStatusDTO) => {
-    if (userRole !== SystemRole.SYSTEM_ADMIN) throw UnAuthorizedError;
-
+  updateStatus = async (branchId: number, data: UpdateBranchStatusDTO) => {
     const branch = await findBranchById(branchId);
-    if (!branch) throw BranchNotFoundError;
+    if (!branch) {
+      throw BranchNotFoundError;
+    }
 
     const updated = await updateBranchStatus(branchId, data);
 
@@ -82,28 +102,5 @@ export class BranchService {
       message: 'Branch status updated successfully',
       data: updated,
     };
-  };
-
-  findByRestaurant = async (restaurantId: number) => {
-    await this.restaurantAccessService.findById(restaurantId);
-
-    const branches = await findBranchesByRestaurantId(restaurantId);
-
-    return {
-      message: 'Branches retrieved successfully',
-      data: branches,
-    };
-  };
-
-  findNearby = async (lng: number, lat: number) => {
-    const branches = await findNearbyBranches(lng, lat);
-    return {
-      message: 'Branches retrieved successfully',
-      data: branches,
-    };
-  };
-
-  findByIds = async (ids: number[]) => {
-    return await findBranchesIds(ids);
   };
 }

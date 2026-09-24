@@ -32,26 +32,17 @@ export async function createRestaurantMember(data: Partial<RestaurantMember>, co
   return toEntity(row);
 }
 
-export async function activateMemberByUserId(userId: number): Promise<void> {
-  await db('restaurant_members').where('user_id', userId).update({
-    status: MemberStatus.ACTIVE,
-    updated_at: new Date(),
-  });
-}
-
-export async function findRestaurantMemberWithRole(
-  userId: number,
-): Promise<{ memberId: number; restaurantId: number; roleName: string }> {
+export async function findMemberWithRoleName(memberId: number): Promise<{ member: RestaurantMember; roleName: string } | null> {
   const row = await db('restaurant_members as  rm')
-    .select('rm.id', 'rm.restaurant_id', 'r.name as roleName')
-    .leftJoin('roles as r', 'r.id', 'rm.role_id')
-    .where('rm.user_id', userId)
-    .andWhere('rm.status', MemberStatus.ACTIVE)
+    .select(...MEMBER_COLUMNS.map((c) => `rm.${c}`), 'r.name as roleName')
+    .leftJoin('roles as r', 'r.id', 'rm.roleId')
+    .where('rm.id', memberId)
     .first();
 
+  if (!row) return null;
+
   return {
-    memberId: row.id,
-    restaurantId: row.restaurant_id,
+    member: toEntity(row),
     roleName: row.roleName,
   };
 }
@@ -94,13 +85,39 @@ export async function findMemberByUserId(userId: number): Promise<RestaurantMemb
   return row ? toEntity(row) : null;
 }
 
-export async function updateRestaurantMember(memberId: number, data: Partial<RestaurantMember>): Promise<any> {
+export async function findRestaurantMemberWithRole(
+  userId: number,
+): Promise<{ memberId: number; restaurantId: number; roleName: string } | null> {
+  const row = await db('restaurant_members as rm')
+    .select('rm.restaurant_id', 'rm_id', 'r.name as roleName')
+    .leftJoin('roles as r', 'r.id', 'rm.role_id')
+    .where('rm.user_id', userId)
+    .first();
+  if (!row) return null;
+  return {
+    memberId: row.id,
+    restaurantId: row.restaurant_id,
+    roleName: row.roleName,
+  };
+}
+
+export async function updateMember(
+  memberId: number,
+  data: { roleId?: number; status?: MemberStatus; updatedAt: Date },
+): Promise<any> {
   const mapping: Record<string, unknown> = {};
   mapping.updated_at = data.updatedAt;
   if (data.roleId !== undefined) mapping.role_id = data.roleId;
   if (data.status !== undefined) mapping.status = data.status;
 
   await db('restaurant_members').where('id', memberId).update(mapping);
+}
+
+export async function activateMemberByUserId(userId: number): Promise<void> {
+  await db('restaurant_members').where('user_id', userId).update({
+    status: MemberStatus.ACTIVE,
+    updated_at: new Date(),
+  });
 }
 
 export async function deleteMember(memberId: number) {

@@ -8,32 +8,7 @@ import {
   PaginationParams,
 } from '../../../lib/http/pagination/cursor-pagination';
 
-interface ProductRow {
-  id: number;
-  name: string;
-  description: string | null;
-  image_url: string | null;
-  restaurant_id: number;
-  category_id: number | null;
-  created_at: Date;
-  updated_at: Date;
-  deleted_at: Date | null;
-}
-
-interface ProductByBranchRow {
-  id: number;
-  name: string;
-  description: string | null;
-  image_url: string | null;
-  restaurant_id: number;
-  category_id: number | null;
-  category_name: string;
-  price: string;
-  stock: number;
-  is_available: boolean;
-}
-
-export interface IProductByBranch {
+export interface ProductByBranch {
   id: number;
   name: string;
   description: string | null;
@@ -58,12 +33,12 @@ const PRODUCT_COLUMNS = [
   'deleted_at',
 ];
 
-function toEntity(row: ProductRow): Product {
+function toEntity(row: any) {
   return new Product({
     id: row.id,
     name: row.name,
     description: row.description ?? '',
-    imageUrl: row.image_url ?? '',
+    imageUrl: row.img_url ?? '',
     restaurantId: row.restaurant_id,
     categoryId: row.category_id,
     createdAt: row.created_at,
@@ -72,7 +47,7 @@ function toEntity(row: ProductRow): Product {
   });
 }
 
-function toProductByBranch(row: ProductByBranchRow): IProductByBranch {
+function toProductByBranch(row: any): ProductByBranch {
   return {
     id: row.id,
     name: row.name,
@@ -139,7 +114,7 @@ export async function findProductsByRestaurant(
   return rows.map(toEntity);
 }
 
-export async function findProductsByBranch(branchId: number): Promise<IProductByBranch[]> {
+export async function findProductsByBranch(branchId: number): Promise<ProductByBranch[]> {
   const rows = await db('products as p')
     .join('product_categories as pc', 'p.category_id', 'pc.id')
     .leftJoin('product_branch_details as pbd', 'p.id', 'pbd.product_id')
@@ -151,7 +126,7 @@ export async function findProductsByBranch(branchId: number): Promise<IProductBy
       'p.description',
       'p.img_url',
       'p.restaurant_id',
-      'p.category_id', 
+      'p.category_id',
       'pc.name as category_name',
       'pbd.price',
       'pbd.stock',

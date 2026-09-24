@@ -3,7 +3,7 @@ import { db } from '../../../lib/knex/knex';
 import { MemberBranch } from '../entity/member-branches.entity';
 
 export async function setMemberBranches(memberId: number, rows: MemberBranch[], conn: Knex = db) {
-  // delete existing assignments, then insert the new set (transactionally if a conn is passed)
+  // delete existing assignments, then insert the new set
   await conn('member_branches').where('member_id', memberId).delete();
 
   if (rows.length > 0) {

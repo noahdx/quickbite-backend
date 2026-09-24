@@ -2,17 +2,9 @@ import { Knex } from 'knex';
 import { db } from '../../../lib/knex/knex';
 import { ProductCategory } from '../entity/product-category.entity';
 
-interface CategoryRow {
-  id: number;
-  restaurant_id: number;
-  name: string;
-  created_at: Date;
-  updated_at: Date;
-}
-
 const CATEGORY_COLUMNS = ['id', 'restaurant_id', 'name', 'created_at', 'updated_at'];
 
-function toEntity(row: CategoryRow): ProductCategory {
+function toEntity(row: any) {
   return new ProductCategory({
     id: row.id,
     restaurantId: row.restaurant_id,
@@ -22,16 +14,8 @@ function toEntity(row: CategoryRow): ProductCategory {
   });
 }
 
-export async function createCategory(restaurantId: number, name: string, conn: Knex = db): Promise<ProductCategory> {
-  const now = new Date();
-  const [row] = await conn('product_categories')
-    .insert({
-      restaurant_id: restaurantId,
-      name: name,
-      created_at: now,
-      updated_at: now,
-    })
-    .returning(CATEGORY_COLUMNS);
+export async function createCategory(data: Partial<ProductCategory>, conn: Knex = db): Promise<ProductCategory> {
+  const [row] = await conn('product_categories').insert(data).returning(CATEGORY_COLUMNS);
 
   return toEntity(row);
 }

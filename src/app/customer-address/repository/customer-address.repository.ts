@@ -2,21 +2,6 @@ import { db } from '../../../lib/knex/knex';
 import { AddressType } from '../enums';
 import { CustomerAddress } from '../entity/customer-address.entity';
 
-interface CustomerAddressRow {
-  id: number;
-  user_id: number;
-  label: string;
-  country: string;
-  city: string;
-  street: string;
-  building: string | null;
-  apartment_number: string | null;
-  type: string;
-  lat: string;
-  lng: string;
-  is_default: boolean;
-}
-
 const ADDRESS_COLUMNS = [
   'id',
   'user_id',
@@ -32,7 +17,7 @@ const ADDRESS_COLUMNS = [
   'is_default',
 ];
 
-function toEntity(row: CustomerAddressRow) {
+function toEntity(row: any) {
   return new CustomerAddress({
     id: row.id,
     userId: row.user_id,
@@ -71,6 +56,7 @@ export async function createAddress(data: Partial<CustomerAddress>): Promise<Cus
 
 export async function updateAddress(id: number, data: Partial<CustomerAddress>): Promise<CustomerAddress> {
   const mapping: Record<string, unknown> = {};
+
   if (data.label !== undefined) mapping.label = data.label;
   if (data.country !== undefined) mapping.country = data.country;
   if (data.city !== undefined) mapping.city = data.city;

@@ -10,7 +10,6 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
-import { SystemRole } from '../../user/enums';
 import { Type } from 'class-transformer';
 import { RestaurantStatus } from '../enums';
 

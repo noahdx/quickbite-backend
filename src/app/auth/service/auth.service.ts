@@ -1,20 +1,12 @@
 import { inject, injectable } from 'tsyringe';
 import { tokens } from '../../../lib/di/tokens';
 import { db } from '../../../lib/knex/knex';
-import { logger } from '../../../lib/logger/logger';
-import { toMs } from '../../../pkg/utils/time';
 import { MemberService } from '../../rbac/service/member.service';
 import { RestaurantService } from '../../restaurant/service/restaurant.service';
 import { SystemRole } from '../../user/enums';
 import { UserService } from '../../user/service/user.service';
 import { ForgetResetDTO, LoginDTO, RegisterDTO, ResetPasswordDTO } from '../dto/auth.dto';
-import {
-  CannotSingUpAsSystemAdmin,
-  IncorrectCredentials,
-  InvalidOTPError,
-  RestaurantDataRequiredError,
-  UserAlreadyExistsError,
-} from '../errors';
+import { CannotSingUpAsSystemAdminError, IncorrectCredentials, InvalidOTPError, RestaurantDataRequiredError } from '../errors';
 import { findLatestPasswordResetByUserId, updatePasswordResetConsumedAt } from '../repository/auth.repository';
 import { generateAccessToken, generateRefreshToken, hashOTP, JwtPayload, verifyRefreshToken } from '../utils';
 import { CredentialsService } from './credentials.service';
@@ -29,38 +21,36 @@ export class AuthService {
   ) {}
 
   register = async (data: RegisterDTO) => {
-    if (data.role === SystemRole.SYSTEM_ADMIN) throw CannotSingUpAsSystemAdmin;
-
-    if (await this.userService.existsByEmail(data.email)) throw UserAlreadyExistsError;
-
-    const hashedPassword = await this.credentialsService.hashPassword(data.password);
+    if (data.role === SystemRole.SYSTEM_ADMIN) {
+      throw CannotSingUpAsSystemAdminError;
+    }
 
     let user = null;
     let restaurant = null;
     let restaurantMemberInfo: { restaurantId?: number; restaurantRole?: string; branchIds?: number[] } = {};
     const trx = await db.transaction();
     try {
-      const now = new Date();
       user = await this.userService.create(
         {
           email: data.email,
           phone: data.phone,
           name: data.name,
-          passwordHash: hashedPassword,
-          systemRole: data.role,
-          createdAt: now,
-          updatedAt: now,
+          password: data.password,
+          role: data.role,
         },
         trx,
       );
 
       // check if the type of user is restaurant, then call restaurant service to create a new restaurant
-      if (user.systemRole === SystemRole.RESTAURANT_USER) {
-        if (data.restaurant === undefined) throw RestaurantDataRequiredError;
+      if (data.role === SystemRole.RESTAURANT_USER) {
+        if (data.restaurant === undefined) {
+          throw RestaurantDataRequiredError;
+        }
+
         restaurant = await this.restaurantService.create(user.id, data.restaurant, trx);
 
         // insert the owner member via member service
-        await this.memberService.createMemberOwner(user.id, restaurant.id, trx);
+        await this.memberService.createOwnerMember(user.id, restaurant.id, trx);
         restaurantMemberInfo = {
           restaurantId: restaurant.id,
           restaurantRole: 'owner',
@@ -108,11 +98,12 @@ export class AuthService {
 
     let restaurantMemberInfo: { restaurantId?: number; restaurantRole?: string; branchIds?: number[] } = {};
     if (user.systemRole === SystemRole.RESTAURANT_USER) {
-      const memberData = await this.memberService.getRestaurantContext(user.id);
+      const memberData = await this.memberService.getRestaurantMemberWithRole(user.id);
+      const branchIds = await this.memberService.getBranchIdsByMemberId(memberData.memberId);
       restaurantMemberInfo = {
         restaurantId: memberData.restaurantId,
         restaurantRole: memberData.roleName,
-        branchIds: memberData.branchIds,
+        branchIds,
       };
     }
 
@@ -143,15 +134,15 @@ export class AuthService {
     const user = await this.userService.findByEmail(data.email);
     if (!user)
       return {
-        message: 'if the account exists, an OTP has been sent to your email',
+        message: 'Email Sent with OTP',
       };
 
-    const otp = await this.credentialsService.createOtp(user.id, toMs(10, 'm'));
+    const otp = await this.credentialsService.createOtp(user.id);
 
     // TODO::send otp to user email
-    logger.info(`otp: ${otp} | send to your email`);
+    console.log(`otp: ${otp} | send to your email`);
     return {
-      message: 'if the account exists, an OTP has been sent to your email',
+      message: 'Email Sent with OTP',
     };
   };
 
@@ -159,21 +150,13 @@ export class AuthService {
     if (!refreshToken) throw IncorrectCredentials;
     const payload = verifyRefreshToken(refreshToken);
 
-    let restaurantMemberInfo: { restaurantId?: number; restaurantRole?: string; branchIds?: number[] } = {};
-    if (payload.role === SystemRole.RESTAURANT_USER) {
-      const memberData = await this.memberService.getRestaurantContext(payload.userId);
-      restaurantMemberInfo = {
-        restaurantId: memberData.restaurantId,
-        restaurantRole: memberData.roleName,
-        branchIds: memberData.branchIds,
-      };
-    }
-
     const accessToken = generateAccessToken({
       userId: payload.userId,
       email: payload.email,
       role: payload.role,
-      ...restaurantMemberInfo,
+      restaurantId: payload.restaurantId,
+      restaurantRole: payload.restaurantRole,
+      branchIds: payload.branchIds,
     });
 
     return {

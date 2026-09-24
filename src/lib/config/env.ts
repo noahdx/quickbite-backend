@@ -43,8 +43,8 @@ export const env = {
   jwt: {
     accessSecret: parsed.ACCESS_SECRET,
     refreshSecret: parsed.REFRESH_SECRET,
-    accessExpiresIn: parsed.ACCESS_EXPIRES_IN,
-    refreshExpiresIn: parsed.REFRESH_EXPIRES_IN,
+    accessExpiresIn: Number(parsed.ACCESS_EXPIRES_IN),
+    refreshExpiresIn: Number(parsed.REFRESH_EXPIRES_IN),
   },
   migration: {
     directory: path.resolve('../../../', parsed.DB_MIGRATION_DIRECTORY),

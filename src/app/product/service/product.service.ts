@@ -1,5 +1,4 @@
 import { buildPaginationResult, FilterParams, PaginationParams } from '../../../lib/http/pagination/cursor-pagination';
-import { db } from '../../../lib/knex/knex';
 import { CreateProductDTO, UpdateProductDTO } from '../dto/product.dto';
 import { ProductNotFoundError } from '../errors';
 import { createCategory, findCategoriesByRestaurant, findCategoryByName } from '../repository/category.repository';
@@ -12,100 +11,12 @@ import {
   updateProduct,
 } from '../repository/product.repository';
 import { injectable } from 'tsyringe';
+import { RestaurantAccessService } from '../../restaurant/service/restaurant-access.service';
+import { RestaurantNotFoundError } from '../../restaurant/errors';
 
 @injectable()
 export class ProductService {
-  create = async (restaurantId: number, data: CreateProductDTO) => {
-    const trx = await db.transaction();
-    let categoryId: number | null = null;
-    const now = new Date();
-    try {
-      if (data.categoryName) {
-        let category = await findCategoryByName(restaurantId, data.categoryName);
-        if (!category) {
-          category = await createCategory(restaurantId, data.categoryName, trx);
-        }
-        categoryId = category.id;
-      }
-
-      const product = await createProduct(
-        {
-          restaurantId,
-          categoryId,
-          name: data.name,
-          description: data.description,
-          imageUrl: data.imageUrl,
-          createdAt: now,
-          updatedAt: now,
-        },
-        trx,
-      );
-
-      await trx.commit();
-
-      return {
-        message: 'Product created successfully',
-        data: product,
-      };
-    } catch (error) {
-      await trx.rollback();
-      throw error;
-    }
-  };
-
-  update = async (productId: number, branchId: number, data: UpdateProductDTO) => {
-    const product = await findProductById(productId);
-    if (!product) throw ProductNotFoundError;
-
-    const trx = await db.transaction();
-    const now = new Date();
-    let updatedProduct;
-    let branchDetails;
-    let categoryId: number | null = null;
-    try {
-      if (data.categoryName) {
-        let category = await findCategoryByName(product.restaurantId, data.categoryName);
-        if (!category) {
-          category = await createCategory(product.restaurantId, data.categoryName, trx);
-        }
-        categoryId = category.id;
-      }
-
-      updatedProduct = await updateProduct(
-        productId,
-        {
-          categoryId,
-          name: data.name,
-          description: data.description,
-          imageUrl: data.imageUrl,
-          updatedAt: now,
-        },
-        trx,
-      );
-
-      if (branchId && (data.price !== undefined || data.stock !== undefined || data.isAvailable !== undefined)) {
-        branchDetails = await updateBranchDetails(
-          {
-            branchId: branchId,
-            productId: productId,
-            price: data.price,
-            stock: data.stock,
-            isAvailable: data.isAvailable,
-          },
-          trx,
-        );
-      }
-
-      await trx.commit();
-      return {
-        message: 'Product updated successfully',
-        data: [updatedProduct, branchDetails],
-      };
-    } catch (error) {
-      await trx.rollback();
-      throw error;
-    }
-  };
+  constructor(private readonly restaurantAccessService: RestaurantAccessService) {}
 
   findById = async (productId: number) => {
     const product = await findProductById(productId);
@@ -139,6 +50,96 @@ export class ProductService {
     return {
       message: 'Categories retrieved successfully',
       data: categories,
+    };
+  };
+
+  create = async (restaurantId: number, data: CreateProductDTO) => {
+    const restaurant = await this.restaurantAccessService.findById(restaurantId);
+    if (!restaurant) {
+      throw RestaurantNotFoundError;
+    }
+
+    let categoryId = null;
+    const now = new Date();
+
+    if (data.categoryName) {
+      let category = await findCategoryByName(restaurantId, data.categoryName);
+      if (!category) {
+        category = await createCategory({
+          restaurantId: restaurantId,
+          name: data.categoryName,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+      categoryId = category.id;
+    }
+
+    const product = await createProduct({
+      restaurantId,
+      categoryId,
+      name: data.name,
+      description: data.description,
+      imageUrl: data.imageUrl,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return {
+      message: 'Product created successfully',
+      data: product,
+    };
+  };
+
+  update = async (productId: number, data: UpdateProductDTO, branchId?: number) => {
+    const product = await findProductById(productId);
+    if (!product) {
+      throw ProductNotFoundError;
+    }
+
+    const restaurant = await this.restaurantAccessService.findById(product.restaurantId);
+    if (!restaurant) {
+      throw RestaurantNotFoundError;
+    }
+
+    const now = new Date();
+
+    let categoryId = null;
+    if (data.categoryName) {
+      let category = await findCategoryByName(restaurant.id, data.categoryName);
+      if (!category) {
+        category = await createCategory({
+          restaurantId: restaurant.id,
+          name: data.categoryName,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+      categoryId = category.id;
+    }
+
+    const updatedProduct = await updateProduct(productId, {
+      categoryId,
+      name: data.name,
+      description: data.description,
+      imageUrl: data.imageUrl,
+      updatedAt: now,
+    });
+
+    let branchDetails;
+    if (branchId && (data.price !== undefined || data.stock !== undefined || data.isAvailable !== undefined)) {
+      branchDetails = await updateBranchDetails({
+        branchId: branchId,
+        productId: productId,
+        price: data.price,
+        stock: data.stock,
+        isAvailable: data.isAvailable,
+      });
+    }
+
+    return {
+      message: 'Product updated successfully',
+      data: [updatedProduct, branchDetails],
     };
   };
 }

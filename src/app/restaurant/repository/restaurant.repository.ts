@@ -9,18 +9,6 @@ import {
   PaginationParams,
 } from '../../../lib/http/pagination/cursor-pagination';
 
-interface RestaurantRow {
-  id: number;
-  owner_id: number;
-  name: string;
-  logo_url: string;
-  status: string;
-  primary_country: string;
-  created_at: Date;
-  updated_at: Date;
-  status_updated_at: Date;
-}
-
 const RESTAURANT_COLUMNS = [
   'id',
   'owner_id',
@@ -33,7 +21,7 @@ const RESTAURANT_COLUMNS = [
   'status_updated_at',
 ];
 
-function toEntity(row: RestaurantRow) {
+function toEntity(row: any) {
   return new Restaurant({
     id: row.id,
     ownerId: row.owner_id,

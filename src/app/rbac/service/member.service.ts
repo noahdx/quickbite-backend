@@ -6,13 +6,11 @@ import { db } from '../../../lib/knex/knex';
 import { UserAlreadyExistsError } from '../../auth/errors';
 import { CredentialsService } from '../../auth/service/credentials.service';
 import { BranchService } from '../../branch/service/branch.service';
-import { SystemRole } from '../../user/enums';
-import { UserNotFoundError } from '../../user/errors';
 import { UserService } from '../../user/service/user.service';
 import { CreateMemberDTO, UpdateMemberDTO } from '../dto/member.dto';
 import { MemberBranch } from '../entity/member-branches.entity';
 import { MemberStatus } from '../enums';
-import { CannotCreateOwnerUserError, MemberNotFoundError, RoleNotFoundError } from '../errors';
+import { BranchIdsNotFoundError, CannotCreateOwnerUserError, MemberNotFoundError, RoleNotFoundError } from '../errors';
 import { findBranchIdsByMemberId, setMemberBranches } from '../repository/member-branch.repository';
 import {
   activateMemberByUserId,
@@ -20,10 +18,12 @@ import {
   deleteMember,
   findMemberById,
   findMembersByRestaurantId,
+  findMemberWithRoleName,
   findRestaurantMemberWithRole,
-  updateRestaurantMember,
+  updateMember,
 } from '../repository/restaurant-member.repository';
-import { findRoleByName } from '../repository/role.repository';
+import { findRoleIdByName } from '../repository/role.repository';
+import { SystemRole } from '../../user/enums';
 
 @injectable()
 export class MemberService {
@@ -33,11 +33,40 @@ export class MemberService {
     @inject(tokens.CredentialsService) private readonly credentialsService: CredentialsService,
   ) {}
 
-  createMemberOwner = async (userId: number, restaurantId: number, trx?: Knex.Transaction) => {
-    const ownerRoleId = await findRoleByName('owner');
-    if (!ownerRoleId) throw RoleNotFoundError;
+  getRestaurantMemberWithRole = async (userId: number) => {
+    const memberData = await findRestaurantMemberWithRole(userId);
+
+    if (!memberData) {
+      throw MemberNotFoundError;
+    }
+
+    return memberData;
+  };
+
+  getBranchIdsByMemberId = async (memberId: number) => {
+    const branchIds = await findBranchIdsByMemberId(memberId);
+    if (branchIds.length === 0) {
+      throw BranchIdsNotFoundError;
+    }
+    return branchIds;
+  };
+
+  listMembers = async (restaurantId: number) => {
+    const members = await findMembersByRestaurantId(restaurantId);
+    return {
+      message: 'Members retrieved successfully',
+      data: members,
+    };
+  };
+
+  createOwnerMember = async (userId: number, restaurantId: number, trx?: Knex.Transaction) => {
+    const ownerRoleId = await findRoleIdByName('owner', trx);
+    if (!ownerRoleId) {
+      throw RoleNotFoundError;
+    }
+
     const now = new Date();
-    return createRestaurantMember(
+    return await createRestaurantMember(
       {
         userId,
         restaurantId,
@@ -51,31 +80,36 @@ export class MemberService {
   };
 
   createMember = async (restaurantId: number, data: CreateMemberDTO) => {
-    if (data.restaurantRole.toLowerCase() === 'owner') throw CannotCreateOwnerUserError;
+    // don't accept owner role creation
+    if (data.restaurantRole.toLowerCase() === 'owner') {
+      throw CannotCreateOwnerUserError;
+    }
 
-    const roleId = await findRoleByName(data.restaurantRole);
-    if (!roleId) throw RoleNotFoundError;
+    // find roleId by role name
+    const roleId = await findRoleIdByName(data.restaurantRole);
+    if (!roleId) {
+      throw RoleNotFoundError;
+    }
 
-    if (await this.userService.findByEmail(data.email)) throw UserAlreadyExistsError;
+    const existing = await this.userService.existsByEmail(data.email);
+    if (existing) {
+      throw UserAlreadyExistsError;
+    }
 
     const trx = await db.transaction();
     try {
       const now = new Date();
-      // Create user
       const user = await this.userService.create(
         {
           email: data.email,
           phone: data.phone,
           name: data.name,
-          passwordHash: '',
-          systemRole: SystemRole.RESTAURANT_USER,
-          createdAt: now,
-          updatedAt: now,
+          password: '',
+          role: SystemRole.RESTAURANT_USER,
         },
         trx,
       );
 
-      // Create member
       const member = await createRestaurantMember(
         {
           userId: user.id,
@@ -100,24 +134,25 @@ export class MemberService {
           throw new AppError(`Branch Ids: ${missing.join(', ')} not found`, 400);
         }
 
-        const rows = data.branchIds.map((branchId) => {
-          return new MemberBranch({
-            memberId: member.id,
-            branchId: branchId,
-            createdAt: now,
-          });
-        });
+        const rows = data.branchIds.map(
+          (branchId) =>
+            new MemberBranch({
+              memberId: member.id,
+              branchId: branchId,
+              createdAt: now,
+            }),
+        );
 
         await setMemberBranches(member.id, rows, trx);
       }
 
       // Create OTP
-      const otp = await this.credentialsService.createInviteOtp(user.id, trx);
+      const otp = await this.credentialsService.createOtp(user.id, trx);
 
       // TODO:: send otp to user by his email and active it
       console.log(`mocked email sent ${otp}`);
-      await trx.commit();
 
+      await trx.commit();
       return {
         message: 'Member invited successfully',
         member: {
@@ -128,6 +163,7 @@ export class MemberService {
           phone: user.phone,
           role: data.restaurantRole,
           status: MemberStatus.INACTIVE,
+          branchIs: data.branchIds,
         },
       };
     } catch (error) {
@@ -136,68 +172,50 @@ export class MemberService {
     }
   };
 
-  /** Restaurant context embedded in JWTs: which restaurant, which role, accessible branches. */
-  getRestaurantContext = async (userId: number) => {
-    const memberData = await findRestaurantMemberWithRole(userId);
-    if (!memberData) throw UserNotFoundError;
-    const branchIds = await findBranchIdsByMemberId(memberData.memberId);
-    console.log('------------------------', branchIds);
-    return {
-      restaurantId: memberData.restaurantId,
-      roleName: memberData.roleName,
-      branchIds,
-    };
-  };
+  updateMember = async (restaurantId: number, memberId: number, data: UpdateMemberDTO) => {
+    const result = await findMemberWithRoleName(memberId);
+    if (!result || result.member.restaurantId !== restaurantId) {
+      throw MemberNotFoundError;
+    }
 
-  listMembers = async (restaurantId: number) => {
-    const members = await findMembersByRestaurantId(restaurantId);
-    return {
-      message: 'Members retrieved successfully',
-      data: members,
-    };
-  };
-
-  activateMemberByUserId = async (userId: number) => {
-    await activateMemberByUserId(userId);
-  };
-
-  updateMember = async (memberId: number, data: UpdateMemberDTO) => {
-    const member = await findMemberById(memberId);
-    if (!member) throw MemberNotFoundError;
+    const updateData: { roleId?: number; status?: MemberStatus } = {};
 
     // Update role
-    let roleId: number | undefined;
     if (data.restaurantRole !== undefined) {
       if (data.restaurantRole.toLowerCase() === 'owner') throw CannotCreateOwnerUserError;
 
-      const foundRoleId = await findRoleByName(data.restaurantRole);
-      if (foundRoleId === null || foundRoleId === undefined) throw RoleNotFoundError;
-      roleId = foundRoleId;
+      const findRoleId = await findRoleIdByName(data.restaurantRole);
+      if (!findRoleId) throw RoleNotFoundError;
+      updateData.roleId = findRoleId;
+    }
+
+    // Update status
+    if (data.status) {
+      updateData.status = data.status;
     }
 
     // Update member branches
-    if (data.branchIds !== undefined && data.branchIds.length > 0) {
-      const found = await this.branchService.findByIds(data.branchIds);
+    if (data.branchIds && data.branchIds.length > 0) {
+      const branches = await this.branchService.findByIds(data.branchIds);
 
-      if (data.branchIds.length !== found.length) {
-        const foundIds = new Set(found.map((branch) => branch.id));
+      if (data.branchIds.length !== branches.length) {
+        const branchIds = new Set(branches.map((branch) => branch.id));
 
-        const missing = data.branchIds.filter((id) => !foundIds.has(id));
+        const missing = data.branchIds.filter((id) => !branchIds.has(id));
         throw new AppError(`Branch Ids: ${missing.join(', ')} not found`, 400);
       }
 
       const rows = data.branchIds.map((id) => ({
-        memberId: member.id,
+        memberId: result.member.id,
         branchId: id,
         createdAt: new Date(),
       }));
 
-      await setMemberBranches(member.id, rows);
+      await setMemberBranches(result.member.id, rows);
     }
 
-    const updatedMember = await updateRestaurantMember(memberId, {
-      roleId,
-      status: data.status,
+    const updatedMember = await updateMember(memberId, {
+      ...updateData,
       updatedAt: new Date(),
     });
 
@@ -213,4 +231,20 @@ export class MemberService {
     await deleteMember(memberId);
     return { message: 'Restaurant member deleted successfully' };
   };
+
+  activateMemberByUserId = async (userId: number) => {
+    await activateMemberByUserId(userId);
+  };
 }
+
+// getRestaurantContext = async (userId: number) => {
+//   const memberData = await findMemberWithRoleName(userId);
+//   if (!memberData) throw UserNotFoundError;
+//   const branchIds = await findBranchIdsByMemberId(memberData.memberId);
+
+//   return {
+//     restaurantId: memberData.restaurantId,
+//     roleName: memberData.roleName,
+//     branchIds,
+//   };
+// };
