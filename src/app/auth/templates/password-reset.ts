@@ -33,7 +33,7 @@ export function passwordResetEmail(otp: string): { subject: string; html: string
                     </tr>
                     <tr>
                         <td style="font-size:14px; color:#71717a; line-height:1.5;">
-                            This code expires in <strong>10 minutes</strong>. If you did not request this, you can safely ignore this email.
+                            This code expires in <strong>1 hour</strong>. If you did not request this, you can safely ignore this email.
                         </td>
                     </tr>
                 </table>

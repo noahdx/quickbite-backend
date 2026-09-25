@@ -182,7 +182,10 @@ export class AuthService {
     if (!reset) throw InvalidOTPError;
 
     const inputOTP = hashOTP(data.otp);
-    if (inputOTP !== reset.otpHash || reset.isExpired()) throw InvalidOTPError;
+    if (inputOTP !== reset.otpHash || reset.isExpired()) {
+      throw InvalidOTPError;
+    }
+    console.log('stilll work 3');
 
     const hashedPassword = await this.credentialsService.hashPassword(data.newPassword);
     await this.userService.updatePassword(user.id, hashedPassword);

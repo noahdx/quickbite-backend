@@ -33,7 +33,7 @@ export function memberInvitationEmail(otp: string, role: string): { subject: str
                     </tr>
                     <tr>
                         <td style="font-size:14px; color:#71717a; line-height:1.5;">
-                            This code expires in <strong>7 days</strong>. If you did not expect this invitation, you can safely ignore this email.
+                            This code expires in <strong>1 hour</strong>. If you did not expect this invitation, you can safely ignore this email.
                         </td>
                     </tr>
                 </table>

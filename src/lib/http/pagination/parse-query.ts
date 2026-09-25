@@ -1,9 +1,12 @@
 import { FilterParams, PaginationParams } from './cursor-pagination';
 
 export function parsePaginationQuery(query: Record<string, unknown>): PaginationParams {
+  const parsed = Number(query.limit);
+  const limit = Number.isInteger(parsed) && parsed > 0 ? Math.min(100, parsed) : 10;
+
   return {
     cursor: query.cursor as string,
-    limit: Math.min(100, Number(query.limit)),
+    limit: limit,
     field: (query.field as string) ?? 'id',
     orderBy: query.orderBy === 'desc' ? 'desc' : 'asc',
   };

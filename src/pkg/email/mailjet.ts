@@ -2,11 +2,11 @@ import { IEmailProvider, MailjetConfig, MailjetOptions } from './email.interface
 import Mailjet from 'node-mailjet';
 
 export class MailjetProvider implements IEmailProvider {
-  private readonly client: Mailjet;
-  private readonly fromEmail: string;
-  private readonly fromName: string;
+  private client: Mailjet;
+  private fromEmail: string;
+  private fromName: string;
   constructor(config: MailjetConfig) {
-    this.client = Mailjet.apiConnect(config.apiKey, config.apiSecret);
+    this.client = new Mailjet({ apiKey: config.apiKey, apiSecret: config.apiSecret });
     this.fromEmail = config.fromEmail;
     this.fromName = config.fromName;
   }

@@ -35,7 +35,7 @@ export async function createRestaurantMember(data: Partial<RestaurantMember>, co
 export async function findMemberWithRoleName(memberId: number): Promise<{ member: RestaurantMember; roleName: string } | null> {
   const row = await db('restaurant_members as  rm')
     .select(...MEMBER_COLUMNS.map((c) => `rm.${c}`), 'r.name as roleName')
-    .leftJoin('roles as r', 'r.id', 'rm.roleId')
+    .leftJoin('roles as r', 'r.id', 'rm.role_id')
     .where('rm.id', memberId)
     .first();
 
@@ -89,7 +89,7 @@ export async function findRestaurantMemberWithRole(
   userId: number,
 ): Promise<{ memberId: number; restaurantId: number; roleName: string } | null> {
   const row = await db('restaurant_members as rm')
-    .select('rm.restaurant_id', 'rm_id', 'r.name as roleName')
+    .select('rm.restaurant_id', 'rm.id', 'r.name as roleName')
     .leftJoin('roles as r', 'r.id', 'rm.role_id')
     .where('rm.user_id', userId)
     .first();

@@ -47,11 +47,7 @@ export class MemberService {
   };
 
   getBranchIdsByMemberId = async (memberId: number) => {
-    const branchIds = await findBranchIdsByMemberId(memberId);
-    if (branchIds.length === 0) {
-      throw BranchIdsNotFoundError;
-    }
-    return branchIds;
+    return await findBranchIdsByMemberId(memberId);
   };
 
   listMembers = async (restaurantId: number) => {

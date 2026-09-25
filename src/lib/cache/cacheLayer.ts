@@ -18,7 +18,7 @@ export function cacheLayer({
 }: ICacheOptions = {}) {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const cacheProvider: CacheProvider = container.resolve(tokens.CacheProvider);
+      const cacheProvider: CacheProvider = container.resolve<CacheProvider>(tokens.CacheProvider);
 
       let key = `${req.method}:${req.originalUrl}`;
 

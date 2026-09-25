@@ -35,7 +35,7 @@ productRouter.post(
 );
 
 productRouter.patch(
-  '/branches/:branchId/products/:branchId',
+  '/branches/:branchId/products/:productId',
   authenticate,
   requireBranchAccess('branchId'),
   rbac({ resource: 'core:product', action: 'update' }),

@@ -1,42 +1,22 @@
-1 cursor-pagination:
-  . interface PaginationParams:
-      cursor
-      limit
-      field
-      sortBy: 'desc' | 'asc'
+Things to fix (bugs, most important first)
+1. product/routes.ts:38 — malformed route /branches/:branchId/products/:branchId → product update can never work. Fix to :productId.
+2. restaurant-member.repository.ts:92 — 'rm_id' is a literal → login breaks for restaurant users.
+3. restaurant-member.repository.ts:38 — join uses rm.roleId instead of rm.role_id → breaks role lookups.
+4. member.service.ts getBranchIdsByMemberId throws on empty — a new owner with no branches can't log in.
+5. env.ts default '1h' → Number() → NaN → JWT signs crash if the var isn't a plain number (like 3600). Use the string directly or parse seconds properly.
+6. OTP expiry mismatch — code expires in 1h but the emails say 10min (password reset) / 7 days (invite).
+7. parsePaginationQuery — missing limit → NaN → SQL error. Add a default.
+8. Cookie TTL hardcoded in lib/utils/cookie.ts instead of env.jwt.*.
 
-  . interface filterParams:
-      value
-      field
-      operator:
-
-  - func applyCursorPagination(params: PaginationParams, query: QueryBuilder):
-      if (!params.field) return query;
-      if (params.filter):
-          const op = params.sortBy === 'desc' ? '<' | '>'
-          query = query.where(params.field, op, params.cursor);
-
-      return query.sortBy(params.field, params.sortBy).limit(params.limit + 1);
-
-
-
-------------------------------------------------------------------------------
-fix pagination bug:
-  controller for every path pass allowedFields: {key(name convention): key (camel_case for database)}
-  1.applyCursorPagination(allowedFields)
-  2.buildPaginationResult(...., allowedFields):
-    const dbField = allowedFields.has(params.field) ? allowedFields[params.field] : 'id'
-    if match = allowedFields.has(params.field);
-
-
--> roles:
-    - owner
-    - branch manager
-    - staff
-
--> permissions:
-    core:product:create
-    core:product:update
-
-    private  permissions: Map<string, {permissions: string[], cachedAt: number}
-    private readonly ttl = toMs(1h)
+Improvements (security / robustness)
+9. errorHandler logs req.body → log passwords. Remove or redact.
+10. No rate limiting on login/OTP endpoints → add express-rate-limit.
+11. No sameSite on cookies → add SameSite: 'Lax' to reduce CSRF risk.
+12. forget-password should ideally only send the OTP to the first/latest reset — you currently allow unlimited OTP creation (spam/brute force).
+13. Some GET endpoints have no auth (/branches/nearby, /restaurants/:restaurantId/branches, /products/:productId, categories) — confirm that's intended for the public app.
+14. Invite email inside the DB transaction — send it after commit; otherwise a mail failure rolls back the whole member creation.
+15. Cache invalidation — write endpoints don't clear Redis, so lists can be stale for an hour.
+16. cacheLayer/Redis — the app currently fails a request if Redis is down on cached GETs. Consider fail-open (log + continue).
+17. Transactions for setMemberBranches, deleteMember, and branch.create member linking.
+18. Mailjet — To doesn't include a name, and no TextPart fallback; also drop the console.log('mocked email sent', otp) in member.service.ts:162.
+19. Cleanup — tokens.Logger is unused; PermissionCacheService could use Redis instead of memory; missing auth rate limiting on accept-invite; typo branchIs → branchIds.
