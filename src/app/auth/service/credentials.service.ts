@@ -1,9 +1,10 @@
 import { Knex } from 'knex';
-import { db } from '../../../lib/knex/knex';
 import { toMs } from '../../../pkg/utils/time';
 import { createPasswordReset } from '../repository/auth.repository';
 import { comparePassword, generateOTP, hashOTP, hashPassword } from '../utils';
+import { injectable } from 'tsyringe';
 
+@injectable()
 export class CredentialsService {
   hashPassword = hashPassword;
 

@@ -10,13 +10,14 @@ import {
   findProductsByRestaurant,
   updateProduct,
 } from '../repository/product.repository';
-import { injectable } from 'tsyringe';
+import { inject, injectable } from 'tsyringe';
 import { RestaurantAccessService } from '../../restaurant/service/restaurant-access.service';
 import { RestaurantNotFoundError } from '../../restaurant/errors';
+import { tokens } from '../../../lib/di/tokens';
 
 @injectable()
 export class ProductService {
-  constructor(private readonly restaurantAccessService: RestaurantAccessService) {}
+  constructor(@inject(tokens.RestaurantAccessService) private readonly restaurantAccessService: RestaurantAccessService) {}
 
   findById = async (productId: number) => {
     const product = await findProductById(productId);

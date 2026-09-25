@@ -1,5 +1,5 @@
 import Redis from 'ioredis';
-import type { ICacheProvider } from './cache.interface';
+import type { CacheProvider } from './cache.interface';
 
 export interface RedisConfig {
   host: string;
@@ -7,7 +7,7 @@ export interface RedisConfig {
   password?: string;
 }
 
-export class RedisCacheProvider implements ICacheProvider {
+export class RedisCacheProvider implements CacheProvider {
   private readonly client: Redis;
 
   constructor(config: RedisConfig) {
@@ -44,3 +44,5 @@ export class RedisCacheProvider implements ICacheProvider {
     return await this.client.del(key);
   }
 }
+
+

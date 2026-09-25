@@ -1,4 +1,4 @@
-export interface ICacheProvider {
+export interface CacheProvider {
   get(key: string): Promise<any>;
   set(key: string, value: any, ttl?: number): Promise<any>;
   del(key: string): Promise<any>;

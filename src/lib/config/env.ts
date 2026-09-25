@@ -24,6 +24,10 @@ const schema = z.object({
   REDIS_HOST: z.string().default('localhost'),
   REDIS_PORT: z.string().default('6379'),
   REDIS_PASSWORD: z.string().default('12345'),
+  MJ_APIKEY_PUBLIC: z.string(),
+  MJ_APIKEY_SECRET: z.string(),
+  MAIL_FROM_EMAIL: z.string(),
+  MAIL_FROM_NAME: z.string(),
 });
 
 const parsed = schema.parse(process.env);
@@ -58,5 +62,12 @@ export const env = {
     host: parsed.REDIS_HOST,
     port: Number(parsed.REDIS_PORT),
     password: parsed.REDIS_PASSWORD,
+  },
+
+  mailjet: {
+    apiKey: parsed.MJ_APIKEY_PUBLIC,
+    apiSecret: parsed.MJ_APIKEY_SECRET,
+    fromEmail: parsed.MAIL_FROM_EMAIL,
+    fromName: parsed.MAIL_FROM_NAME,
   },
 };

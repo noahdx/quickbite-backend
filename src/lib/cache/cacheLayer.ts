@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { ICacheProvider } from '../../pkg/cache/cache.interface';
+import { CacheProvider } from '../../pkg/cache/cache.interface';
 import { container } from '../di/container';
 import { tokens } from '../di/tokens';
 
@@ -18,7 +18,7 @@ export function cacheLayer({
 }: ICacheOptions = {}) {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const cacheProvider: ICacheProvider = container.resolve(tokens.CacheProvider);
+      const cacheProvider: CacheProvider = container.resolve(tokens.CacheProvider);
 
       let key = `${req.method}:${req.originalUrl}`;
 

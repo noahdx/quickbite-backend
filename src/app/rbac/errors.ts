@@ -4,3 +4,4 @@ export const CannotCreateOwnerUserError = new AppError('Cannot create owner user
 export const RoleNotFoundError = new AppError('Role name not found', 404);
 export const MemberNotFoundError = new AppError('Member not found', 404);
 export const BranchIdsNotFoundError = new AppError('Member not found', 404);
+// export const InvalidBranchIdsError = new AppError('One or more branch IDs no belong to this restaurant', 400);

@@ -10,6 +10,8 @@ import { CannotSingUpAsSystemAdminError, IncorrectCredentials, InvalidOTPError, 
 import { findLatestPasswordResetByUserId, updatePasswordResetConsumedAt } from '../repository/auth.repository';
 import { generateAccessToken, generateRefreshToken, hashOTP, JwtPayload, verifyRefreshToken } from '../utils';
 import { CredentialsService } from './credentials.service';
+import { IEmailProvider } from '../../../pkg/email/email.interface';
+import { passwordResetEmail } from '../templates/password-reset';
 
 @injectable()
 export class AuthService {
@@ -18,6 +20,7 @@ export class AuthService {
     @inject(tokens.CredentialsService) private readonly credentialsService: CredentialsService,
     @inject(tokens.RestaurantService) private readonly restaurantService: RestaurantService,
     @inject(tokens.MemberService) private readonly memberService: MemberService,
+    @inject(tokens.EmailProvider) private readonly emailProvider: IEmailProvider,
   ) {}
 
   register = async (data: RegisterDTO) => {
@@ -139,8 +142,13 @@ export class AuthService {
 
     const otp = await this.credentialsService.createOtp(user.id);
 
-    // TODO::send otp to user email
-    console.log(`otp: ${otp} | send to your email`);
+    const email = passwordResetEmail(otp);
+    await this.emailProvider.send({
+      email: user.email,
+      subject: email.subject,
+      html: email.html,
+    });
+
     return {
       message: 'Email Sent with OTP',
     };

@@ -20,6 +20,8 @@ import { UserController } from '../../app/user/controller/user.controller';
 import { Logger } from '../logger/logger';
 import { CredentialsService } from '../../app/auth/service/credentials.service';
 import { RedisProvider } from '../cache/init';
+import { EmailProvider } from '../email/init';
+import { IEmailProvider } from '../../pkg/email/email.interface';
 
 // Services
 container.registerSingleton<AuthService>(tokens.AuthService, AuthService);
@@ -45,5 +47,6 @@ container.registerSingleton<UserController>(tokens.UserController, UserControlle
 //   lib/infra
 container.registerSingleton<Logger>(tokens.Logger, Logger);
 container.registerInstance(tokens.CacheProvider, RedisProvider);
+container.registerInstance<IEmailProvider>(tokens.EmailProvider, EmailProvider);
 
 export { container };

@@ -24,6 +24,8 @@ import {
 } from '../repository/restaurant-member.repository';
 import { findRoleIdByName } from '../repository/role.repository';
 import { SystemRole } from '../../user/enums';
+import { IEmailProvider } from '../../../pkg/email/email.interface';
+import { memberInvitationEmail } from '../templates/member-invitation';
 
 @injectable()
 export class MemberService {
@@ -31,6 +33,7 @@ export class MemberService {
     @inject(tokens.UserService) private readonly userService: UserService,
     @inject(tokens.BranchService) private readonly branchService: BranchService,
     @inject(tokens.CredentialsService) private readonly credentialsService: CredentialsService,
+    @inject(tokens.EmailProvider) private readonly emailProvider: IEmailProvider,
   ) {}
 
   getRestaurantMemberWithRole = async (userId: number) => {
@@ -150,6 +153,12 @@ export class MemberService {
       const otp = await this.credentialsService.createOtp(user.id, trx);
 
       // TODO:: send otp to user by his email and active it
+      const email = memberInvitationEmail(otp, data.restaurantRole);
+      await this.emailProvider.send({
+        email: user.email,
+        subject: email.subject,
+        html: email.html,
+      });
       console.log(`mocked email sent ${otp}`);
 
       await trx.commit();
