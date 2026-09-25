@@ -2,23 +2,26 @@
 
 Backend API for a food delivery platform built with **Node.js, Express, TypeScript, and PostgreSQL**.
 
-The project handles restaurants, branches, products, customer addresses, authentication, and role-based access control for restaurant staff.
+The project handles restaurants, branches, products, customer addresses, authentication, email delivery, idempotent requests, and role-based access control for restaurant staff.
 
 ## Main Features
 
-- Authentication with email/password
-- JWT access and refresh tokens using `httpOnly` cookies
-- Password reset and member invitations using OTP
-- Restaurant and branch management
-- Product and category management
-- Per-branch product price, stock, and availability
-- Customer delivery addresses
-- Restaurant members and role-based permissions
-- Branch-level access for restaurant staff
-- Nearby branch search using PostGIS
-- Centralized error handling
-- Request correlation IDs for easier debugging
-- Health endpoint for checking database connectivity
+* Authentication with email/password
+* JWT access and refresh tokens using `httpOnly` cookies
+* Password reset and member invitations using OTP
+* Email delivery through Mailjet
+* HTML email templates for authentication and invitations
+* Restaurant and branch management
+* Product and category management
+* Per-branch product price, stock, and availability
+* Customer delivery addresses
+* Restaurant members and role-based permissions
+* Branch-level access for restaurant staff
+* Nearby branch search using PostGIS
+* Idempotency middleware for sensitive write operations
+* Centralized error handling
+* Request correlation IDs for easier debugging
+* Health endpoint for checking database connectivity
 
 ---
 
@@ -36,6 +39,7 @@ The project handles restaurants, branches, products, customer addresses, authent
 | Validation           | class-validator + Zod   |
 | Dependency Injection | tsyringe                |
 | Cache                | Redis / ioredis         |
+| Email                | Mailjet                 |
 
 ---
 
@@ -55,17 +59,21 @@ src/
 │
 ├── lib/
 │   ├── auth/
+│   ├── cache/
 │   ├── config/
 │   ├── di/
+│   ├── email/
 │   ├── error/
 │   ├── http/
+│   ├── idempotency/
 │   ├── knex/
 │   ├── logger/
 │   ├── types/
 │   └── utils/
 │
 ├── pkg/
-│   └── cache/
+│   ├── cache/
+│   └── email/
 │
 ├── migrations/
 ├── app.ts
@@ -83,15 +91,18 @@ domain/
 ├── repository/
 ├── dto/
 ├── entity/
+├── templates/
 ├── enums.ts
 └── errors.ts
 ```
+
+The `templates/` directory is used by modules that send emails.
 
 ### Responsibilities
 
 **Routes**
 
-Define endpoints and middleware such as authentication and authorization.
+Define endpoints and middleware such as authentication, authorization, and idempotency.
 
 **Controllers**
 
@@ -112,6 +123,10 @@ Define and validate incoming request data.
 **Entities**
 
 Represent the application's domain objects.
+
+**Templates**
+
+Build the HTML content and subject for emails without putting email markup inside service code.
 
 ---
 
@@ -138,6 +153,8 @@ Repository
 PostgreSQL
 ```
 
+External infrastructure such as Redis and Mailjet is accessed through providers and adapters.
+
 The main rule is that business logic stays out of controllers and database access stays inside repositories.
 
 For example:
@@ -152,8 +169,6 @@ Repository
 Database
 ```
 
-This keeps HTTP handling, business rules, and database access separated.
-
 ---
 
 ## Authentication
@@ -162,23 +177,26 @@ Authentication uses JWTs stored in HTTP-only cookies.
 
 There are two tokens:
 
-- `access_token` — used to authenticate API requests
-- `refresh_token` — used to obtain a new access token
-
-The access token contains the authenticated user's basic context.
-
-For restaurant users, this can include:
-
-```ts
-{
-  (userId, email, role, restaurantId, restaurantRole, branchIds);
-}
-```
+* `access_token` — used to authenticate API requests
+* `refresh_token` — used to obtain a new access token
 
 The authentication middleware reads the access token and attaches the authenticated user to:
 
 ```ts
 req.user;
+```
+
+For restaurant users, the authentication context can include:
+
+```ts
+{
+  userId,
+  email,
+  role,
+  restaurantId,
+  restaurantRole,
+  branchIds
+}
 ```
 
 ---
@@ -218,8 +236,6 @@ core:product:read
 core:member:update
 ```
 
-Roles are connected to permissions through the RBAC tables.
-
 The application uses middleware such as:
 
 ```ts
@@ -229,6 +245,113 @@ requireBranchAccess(...)
 ```
 
 This allows an endpoint to check both the user's permission and whether the user belongs to the requested restaurant or branch.
+
+---
+
+## Idempotency
+
+The project includes an idempotency middleware for write operations where duplicate requests can cause unwanted side effects.
+
+Idempotency applies to:
+
+```text
+POST
+PUT
+PATCH
+```
+
+`GET` and `DELETE` requests are skipped.
+
+The middleware reads the `Idempotency-Key` header and uses Redis to store the response:
+
+```text
+idempotency:<method>:<url>:<idempotency-key>
+```
+
+Cached responses are kept for **24 hours**.
+
+Idempotency is applied per route rather than globally because different endpoints have different requirements.
+
+Example:
+
+```ts
+router.post(
+  '/forget-password',
+  idempotency({ strict: true }),
+  handler,
+);
+```
+
+### Strict mode
+
+Strict mode is intended for operations where duplicate requests are more dangerous.
+
+If the `Idempotency-Key` is missing:
+
+```text
+400 Bad Request
+```
+
+If Redis is unavailable:
+
+```text
+503 Service Unavailable
+```
+
+In non-strict mode, the middleware skips idempotency when the key is missing or Redis is unavailable.
+
+---
+
+## Email
+
+Email delivery is implemented through an `IEmailProvider` interface so application services do not depend directly on Mailjet.
+
+```text
+Service
+   │
+   ▼
+IEmailProvider
+   │
+   ▼
+MailjetEmailProvider
+   │
+   ▼
+Mailjet
+```
+
+The provider is registered through the application's dependency injection container.
+
+### Email templates
+
+Each module that sends emails owns its templates:
+
+```text
+src/app/auth/templates/password-reset.ts
+src/app/rbac/templates/member-invitation.ts
+```
+
+Templates receive only the dynamic data they need and return:
+
+```ts
+{
+  subject: string;
+  html: string;
+}
+```
+
+For example, the password reset flow generates the email and sends it through the provider:
+
+```ts
+const email = passwordResetEmail(otp);
+
+await this.emailProvider.send(
+  data.email,
+  email.subject,
+  email.html,
+);
+```
+
+This keeps email markup out of service logic and makes the email provider replaceable.
 
 ---
 
@@ -402,6 +525,11 @@ CORS_ORIGINS=
 REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_PASSWORD=
+
+MAILJET_API_KEY=
+MAILJET_SECRET_KEY=
+MAILJET_FROM_EMAIL=
+MAILJET_FROM_NAME=
 ```
 
 Environment variables are validated when the application starts.
@@ -422,7 +550,7 @@ npm install
 cp .env.example .env
 ```
 
-Update the database and authentication configuration.
+Update the database, authentication, Redis, and Mailjet configuration.
 
 ### 3. Run migrations
 
@@ -470,7 +598,7 @@ npm run migrate:rollback
 
 ## Design Decisions
 
-A few conventions are used throughout the project:
+A few conventions are used throughout the project.
 
 ### Database naming
 
@@ -509,6 +637,20 @@ This keeps multi-step operations atomic.
 Controllers are intentionally small.
 
 They handle HTTP concerns and delegate business logic to services.
+
+### Dependency injection
+
+Infrastructure providers such as cache and email are registered through the DI container.
+
+Application services depend on interfaces rather than directly depending on infrastructure implementations.
+
+### Idempotency
+
+Idempotency is implemented as route-level middleware instead of global middleware because only specific write operations need protection against duplicate requests.
+
+### Email delivery
+
+Email delivery is abstracted behind `IEmailProvider`, allowing the application to use Mailjet without coupling business logic directly to the Mailjet SDK.
 
 ### Database responsibilities
 
