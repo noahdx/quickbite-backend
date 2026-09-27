@@ -21,7 +21,6 @@ export const tokens = {
   UserController: Symbol.for('UserController'),
 
   //   lib/infra
-  Logger: Symbol.for('Logger'),
   CacheProvider: Symbol.for('CacheProvider'),
   EmailProvider: Symbol.for('EmailProvider'),
 };

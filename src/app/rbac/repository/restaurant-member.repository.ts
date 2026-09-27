@@ -49,16 +49,7 @@ export async function findMemberWithRoleName(memberId: number): Promise<{ member
 
 export async function findMembersByRestaurantId(restaurantId: number): Promise<any[]> {
   const rows = await db('restaurant_members as rm')
-    .select(
-      'rm.user_id',
-      'rm.id',
-      'rm.status',
-      'u.name',
-      'u.email',
-      'u.phone',
-      'r.name as role',
-      'r.display_name as roleDisplayName',
-    )
+    .select('rm.user_id', 'rm.id', 'rm.status', 'u.name', 'u.email', 'u.phone', 'r.name as role', 'r.display_name as roleDisplayName')
     .join('users as u', 'u.id', 'rm.user_id')
     .join('roles as r', 'r.id', 'rm.role_id')
     .where('restaurant_id', restaurantId);
@@ -101,14 +92,11 @@ export async function findRestaurantMemberWithRole(
   };
 }
 
-export async function updateMember(
-  memberId: number,
-  data: { roleId?: number; status?: MemberStatus; updatedAt: Date },
-): Promise<any> {
+export async function updateMember(memberId: number, data: { roleId?: number; status?: MemberStatus; updatedAt: Date }): Promise<any> {
   const mapping: Record<string, unknown> = {};
   mapping.updated_at = data.updatedAt;
-  if (data.roleId !== undefined) mapping.role_id = data.roleId;
-  if (data.status !== undefined) mapping.status = data.status;
+  if (data.roleId !== null) mapping.role_id = data.roleId;
+  if (data.status !== null) mapping.status = data.status;
 
   await db('restaurant_members').where('id', memberId).update(mapping);
 }

@@ -14,6 +14,8 @@ import { inject, injectable } from 'tsyringe';
 import { RestaurantAccessService } from '../../restaurant/service/restaurant-access.service';
 import { RestaurantNotFoundError } from '../../restaurant/errors';
 import { tokens } from '../../../lib/di/tokens';
+import { SystemRole } from '../../user/enums';
+import { UnAuthorizedError } from '../../../lib/auth/errors';
 
 @injectable()
 export class ProductService {

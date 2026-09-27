@@ -15,17 +15,20 @@ function toEntity(row: any) {
 }
 
 export async function createCategory(data: Partial<ProductCategory>, conn: Knex = db): Promise<ProductCategory> {
-  const [row] = await conn('product_categories').insert(data).returning(CATEGORY_COLUMNS);
+  const [row] = await conn('product_categories')
+    .insert({
+      restaurant_id: data.restaurantId,
+      name: data.name,
+      created_at: data.createdAt,
+      updated_at: data.updatedAt,
+    })
+    .returning(CATEGORY_COLUMNS);
 
   return toEntity(row);
 }
 
 export async function findCategoryByName(restaurantId: number, name: string): Promise<ProductCategory | null> {
-  const row = await db('product_categories')
-    .select(CATEGORY_COLUMNS)
-    .where('name', name)
-    .where('restaurant_id', restaurantId)
-    .first();
+  const row = await db('product_categories').select(CATEGORY_COLUMNS).where('name', name).where('restaurant_id', restaurantId).first();
   return row ? toEntity(row) : null;
 }
 

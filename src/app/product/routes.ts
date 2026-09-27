@@ -11,11 +11,7 @@ const productController = container.resolve<ProductController>(tokens.ProductCon
 
 productRouter.get('/products/:productId', productController.findById);
 productRouter.get('/branches/:branchId/products', cacheLayer({ branchScoped: true }), productController.findByBranch);
-productRouter.get(
-  '/restaurants/:restaurantId/categories',
-  cacheLayer({ restaurantScoped: true }),
-  productController.findCategories,
-);
+productRouter.get('/restaurants/:restaurantId/categories', cacheLayer({ restaurantScoped: true }), productController.findCategories);
 
 productRouter.get(
   '/restaurants/:restaurantId/products',

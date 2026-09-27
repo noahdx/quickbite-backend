@@ -9,7 +9,7 @@ export const restaurantRouter = Router();
 const restaurantController = container.resolve<RestaurantController>(tokens.RestaurantController);
 
 restaurantRouter.get('/', restaurantController.getAll);
-restaurantRouter.get('/:id', restaurantController.getById);
+restaurantRouter.get('/:restaurantId', restaurantController.getById);
 restaurantRouter.post('/', authenticate, rbac({ resource: 'core:restaurant', action: 'create' }), restaurantController.create);
 
 restaurantRouter.patch(

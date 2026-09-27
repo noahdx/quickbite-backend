@@ -2,12 +2,7 @@ import { Knex } from 'knex';
 import { db } from '../../../lib/knex/knex';
 import { Restaurant } from '../entity/restaurant.entity';
 import { RestaurantStatus } from '../enums';
-import {
-  applyCursorPagination,
-  applyFilters,
-  FilterParams,
-  PaginationParams,
-} from '../../../lib/http/pagination/cursor-pagination';
+import { applyCursorPagination, applyFilters, FilterParams, PaginationParams } from '../../../lib/http/pagination/cursor-pagination';
 
 const RESTAURANT_COLUMNS = [
   'id',
@@ -53,9 +48,9 @@ export async function createRestaurant(data: Partial<Restaurant>, conn: Knex = d
 
 export async function updateRestaurant(id: number, data: Partial<Restaurant>): Promise<Restaurant> {
   const mapping: Record<string, unknown> = {};
-  if (data.name !== undefined) mapping.name = data.name;
-  if (data.logoURL !== undefined) mapping.logo_url = data.logoURL;
-  if (data.primaryCountry !== undefined) mapping.primary_country = data.primaryCountry;
+  if (data.name !== null) mapping.name = data.name;
+  if (data.logoURL !== null) mapping.logo_url = data.logoURL;
+  if (data.primaryCountry !== null) mapping.primary_country = data.primaryCountry;
 
   const [row] = await db('restaurants').where('id', id).update(mapping).returning(RESTAURANT_COLUMNS);
 
@@ -78,9 +73,9 @@ export async function findAllRestaurants(
   filters: FilterParams[],
   allowedFields: Record<string, any>,
 ): Promise<Restaurant[]> {
-  const query = db('restaurants').select(RESTAURANT_COLUMNS);
-  applyFilters(query, filters);
-  applyCursorPagination(query, params, allowedFields);
+  let query = db('restaurants').select(RESTAURANT_COLUMNS);
+  query = applyFilters(query, filters);
+  query = applyCursorPagination(query, params, allowedFields);
   const rows = await query;
   return rows.map(toEntity);
 }

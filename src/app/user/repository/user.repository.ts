@@ -36,8 +36,8 @@ export async function createUser(data: Partial<User>, conn: Knex = db): Promise<
 
 export async function updateUser(id: number, data: Partial<{ name: string; phone: string }>): Promise<User> {
   const mapping: Record<string, unknown> = { updated_at: new Date() };
-  if (data.name !== undefined) mapping.name = data.name;
-  if (data.phone !== undefined) mapping.phone = data.phone;
+  if (data.name !== null) mapping.name = data.name;
+  if (data.phone !== null) mapping.phone = data.phone;
 
   const [row] = await db('users').where('id', id).update(mapping).returning(USER_COLUMNS);
 

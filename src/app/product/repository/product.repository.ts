@@ -52,7 +52,7 @@ function toProductByBranch(row: any): ProductByBranch {
     id: row.id,
     name: row.name,
     description: row.description,
-    imageUrl: row.image_url,
+    imageUrl: row.img_url,
     restaurantId: row.restaurant_id,
     categoryId: row.category_id,
     categoryName: row.category_name,
@@ -79,14 +79,13 @@ export async function createProduct(data: Partial<Product>, conn: Knex = db): Pr
 }
 
 export async function updateProduct(id: number, data: Partial<Product>, conn: Knex = db): Promise<Product> {
-  const mapping: Record<string, unknown> = {};
-  mapping.updated_at = data.updatedAt;
-  if (data.categoryId !== undefined) mapping.category_id = data.categoryId;
-  if (data.name !== undefined) mapping.name = data.name;
-  if (data.description !== undefined) mapping.description = data.description;
-  if (data.imageUrl !== undefined) mapping.img_url = data.imageUrl;
+  const mapping: Record<string, unknown> = { updated_at: data.createdAt };
+  if (data.name !== null) mapping.name = data.name;
+  if (data.imageUrl !== null) mapping.img_url = data.imageUrl;
+  if (data.categoryId !== null) mapping.category_id = data.categoryId;
+  if (data.description !== null) mapping.description = data.description;
 
-  const [row] = await conn('products').where('id', id).update(mapping).returning(PRODUCT_COLUMNS);
+  const row = await conn('products').where('id', id).update(mapping).returning(PRODUCT_COLUMNS).first();
 
   return toEntity(row);
 }
@@ -102,15 +101,11 @@ export async function findProductsByRestaurant(
   filters: FilterParams[],
   allowedFields: Record<string, any>,
 ): Promise<Product[]> {
-  const query = db('products').select(PRODUCT_COLUMNS).where('restaurant_id', restaurantId).whereNull('deleted_at');
+  let query = db('products').select(PRODUCT_COLUMNS).where('restaurant_id', restaurantId).whereNull('deleted_at');
 
-  applyFilters(query, filters);
-  applyCursorPagination(query, params, allowedFields);
+  query = applyFilters(query, filters);
+  query = applyCursorPagination(query, params, allowedFields);
   const rows = await query;
-  // const rows = await db('products')
-  //   .select(PRODUCT_COLUMNS)
-  //   .where('restaurant_id', restaurantId)
-  //   .whereNull('deleted_at');
   return rows.map(toEntity);
 }
 

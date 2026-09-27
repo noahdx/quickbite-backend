@@ -6,22 +6,22 @@ The project handles restaurants, branches, products, customer addresses, authent
 
 ## Main Features
 
-* Authentication with email/password
-* JWT access and refresh tokens using `httpOnly` cookies
-* Password reset and member invitations using OTP
-* Email delivery through Mailjet
-* HTML email templates for authentication and invitations
-* Restaurant and branch management
-* Product and category management
-* Per-branch product price, stock, and availability
-* Customer delivery addresses
-* Restaurant members and role-based permissions
-* Branch-level access for restaurant staff
-* Nearby branch search using PostGIS
-* Idempotency middleware for sensitive write operations
-* Centralized error handling
-* Request correlation IDs for easier debugging
-* Health endpoint for checking database connectivity
+- Authentication with email/password
+- JWT access and refresh tokens using `httpOnly` cookies
+- Password reset and member invitations using OTP
+- Email delivery through Mailjet
+- HTML email templates for authentication and invitations
+- Restaurant and branch management
+- Product and category management
+- Per-branch product price, stock, and availability
+- Customer delivery addresses
+- Restaurant members and role-based permissions
+- Branch-level access for restaurant staff
+- Nearby branch search using PostGIS
+- Idempotency middleware for sensitive write operations
+- Centralized error handling
+- Request correlation IDs for easier debugging
+- Health endpoint for checking database connectivity
 
 ---
 
@@ -177,8 +177,8 @@ Authentication uses JWTs stored in HTTP-only cookies.
 
 There are two tokens:
 
-* `access_token` — used to authenticate API requests
-* `refresh_token` — used to obtain a new access token
+- `access_token` — used to authenticate API requests
+- `refresh_token` — used to obtain a new access token
 
 The authentication middleware reads the access token and attaches the authenticated user to:
 
@@ -190,12 +190,7 @@ For restaurant users, the authentication context can include:
 
 ```ts
 {
-  userId,
-  email,
-  role,
-  restaurantId,
-  restaurantRole,
-  branchIds
+  (userId, email, role, restaurantId, restaurantRole, branchIds);
 }
 ```
 
@@ -275,11 +270,7 @@ Idempotency is applied per route rather than globally because different endpoint
 Example:
 
 ```ts
-router.post(
-  '/forget-password',
-  idempotency({ strict: true }),
-  handler,
-);
+router.post('/forget-password', idempotency({ strict: true }), handler);
 ```
 
 ### Strict mode
@@ -344,11 +335,7 @@ For example, the password reset flow generates the email and sends it through th
 ```ts
 const email = passwordResetEmail(otp);
 
-await this.emailProvider.send(
-  data.email,
-  email.subject,
-  email.html,
-);
+await this.emailProvider.send(data.email, email.subject, email.html);
 ```
 
 This keeps email markup out of service logic and makes the email provider replaceable.

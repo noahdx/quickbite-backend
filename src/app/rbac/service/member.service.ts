@@ -10,7 +10,7 @@ import { UserService } from '../../user/service/user.service';
 import { CreateMemberDTO, UpdateMemberDTO } from '../dto/member.dto';
 import { MemberBranch } from '../entity/member-branches.entity';
 import { MemberStatus } from '../enums';
-import { BranchIdsNotFoundError, CannotCreateOwnerUserError, MemberNotFoundError, RoleNotFoundError } from '../errors';
+import { CannotCreateOwnerUserError, MemberNotFoundError, RoleNotFoundError } from '../errors';
 import { findBranchIdsByMemberId, setMemberBranches } from '../repository/member-branch.repository';
 import {
   activateMemberByUserId,
@@ -123,7 +123,7 @@ export class MemberService {
 
       // Assign member branches if provided
       if (data.branchIds !== undefined && data.branchIds.length > 0) {
-        const findBranchIds = await this.branchService.findByIds(data.branchIds);
+        const findBranchIds = await this.branchService.findByIds(restaurantId, data.branchIds);
 
         if (findBranchIds.length !== data.branchIds.length) {
           const setIds = new Set(findBranchIds.map((branch) => branch.id));
@@ -201,7 +201,7 @@ export class MemberService {
 
     // Update member branches
     if (data.branchIds && data.branchIds.length > 0) {
-      const branches = await this.branchService.findByIds(data.branchIds);
+      const branches = await this.branchService.findByIds(restaurantId, data.branchIds);
 
       if (data.branchIds.length !== branches.length) {
         const branchIds = new Set(branches.map((branch) => branch.id));
@@ -219,15 +219,12 @@ export class MemberService {
       await setMemberBranches(result.member.id, rows);
     }
 
-    const updatedMember = await updateMember(memberId, {
+    await updateMember(memberId, {
       ...updateData,
       updatedAt: new Date(),
     });
 
-    return {
-      message: 'Member updated successfully',
-      data: updatedMember,
-    };
+    return { message: 'Member updated successfully' };
   };
 
   deleteMember = async (memberId: number, restaurantId: number) => {

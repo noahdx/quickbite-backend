@@ -7,12 +7,7 @@ import { CreateRestaurantDTO, UpdatedRestaurantDTO, UpdateRestaurantStatusDTO } 
 import { Restaurant } from '../entity/restaurant.entity';
 import { RestaurantStatus } from '../enums';
 import { OwnerAlreadyExistsError, RestaurantNotFoundError } from '../errors';
-import {
-  createRestaurant,
-  findAllRestaurants,
-  updateRestaurant,
-  updateRestaurantStatus,
-} from '../repository/restaurant.repository';
+import { createRestaurant, findAllRestaurants, updateRestaurant, updateRestaurantStatus } from '../repository/restaurant.repository';
 import { MemberService } from '../../rbac/service/member.service';
 import { RestaurantAccessService } from './restaurant-access.service';
 import { inject, injectable } from 'tsyringe';

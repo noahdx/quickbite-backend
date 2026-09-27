@@ -22,3 +22,6 @@ function shutdown() {
 
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
+process.on('unhandledRejection', (reason) => {
+  logger.error(' unhandled rejection', { reason: String(reason) });
+});

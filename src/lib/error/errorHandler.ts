@@ -9,7 +9,6 @@ export function errorHandler(err: AppError, req: Request, res: Response, _next: 
     operational: operational,
     statusCode: err.statusCode,
     correlationId: req.correlationID,
-    body: req.body,
     timestamp: new Date().toISOString(),
     stack: err.stack,
   });
@@ -19,11 +18,3 @@ export function errorHandler(err: AppError, req: Request, res: Response, _next: 
   }
   return res.status(500).json({ message: 'Something went wrong' });
 }
-
-/**
- *      statusCode: err.statusCode,
-        stack: err.stack,
-        operational: operational,
-        body: req.body,
-        correlationId: req.correlationId
- */

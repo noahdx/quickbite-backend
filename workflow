@@ -6,3 +6,6 @@
 6. Implement controller
 7. Implement route
 8. Test endpoints
+
+
+npx autocannon -c 100 -d 10 http://localhost:3000/api/branches/nearby

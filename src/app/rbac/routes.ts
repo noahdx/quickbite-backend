@@ -26,7 +26,7 @@ rbacRouter.post(
   memberController.create,
 );
 
-rbacRouter.put(
+rbacRouter.patch(
   '/restaurants/:restaurantId/members/:memberId',
   authenticate,
   requireRestaurantMember('restaurantId'),

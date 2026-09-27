@@ -17,9 +17,9 @@ function toEntity(row: any) {
 
 export async function updateBranchDetails(data: Partial<ProductBranchDetails>, conn: Knex = db): Promise<ProductBranchDetails> {
   const mapping: Record<string, unknown> = {};
-  if (data.price !== undefined) mapping.price = data.price;
-  if (data.stock !== undefined) mapping.stock = data.stock;
-  if (data.isAvailable !== undefined) mapping.is_available = data.isAvailable;
+  if (data.price !== null) mapping.price = data.price;
+  if (data.stock !== null) mapping.stock = data.stock;
+  if (data.isAvailable !== null) mapping.is_available = data.isAvailable;
 
   const [row] = await conn('product_branch_details')
     .where('branch_id', data.branchId)

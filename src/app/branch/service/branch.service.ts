@@ -33,8 +33,8 @@ export class BranchService {
     };
   };
 
-  findByIds = async (ids: number[]) => {
-    return await findBranchesIds(ids);
+  findByIds = async (restaurantId: number, ids: number[]) => {
+    return await findBranchesIds(restaurantId, ids);
   };
 
   create = async (userId: number, restaurantId: number, data: CreateBranchDTO) => {

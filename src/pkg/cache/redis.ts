@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
 import type { CacheProvider } from './cache.interface';
+import { logger } from '../../lib/logger/logger';
 
 export interface RedisConfig {
   host: string;
@@ -20,29 +21,39 @@ export class RedisCacheProvider implements CacheProvider {
     });
 
     this.client.on('error', (error) => {
-      console.error('Redis Error: ', error.message);
+      logger.error(`Redis Error: ${error.message}`);
     });
 
     this.client.connect().catch((error) => {
-      console.error('Redis Connect Error: ', error);
+      logger.error(`Redis Connect Error: ${error.message}`);
     });
   }
 
   async set(key: string, value: any, ttlSeconds?: number): Promise<any> {
-    if (ttlSeconds) {
-      return await this.client.set(key, value, 'EX', ttlSeconds);
-    } else {
-      return await this.client.set(key, value);
+    try {
+      if (ttlSeconds) {
+        return await this.client.set(key, value, 'EX', ttlSeconds);
+      } else {
+        return await this.client.set(key, value);
+      }
+    } catch (error) {
+      logger.error('cache set failed', { key: key, message: (error as Error).message });
     }
   }
 
   async get(key: string): Promise<any> {
-    return this.client.get(key);
+    try {
+      return await this.client.get(key);
+    } catch (error) {
+      logger.error('cache get failed: ', { key: key, message: (error as Error).message });
+    }
   }
 
   async del(key: string): Promise<any> {
-    return await this.client.del(key);
+    try {
+      return await this.client.del(key);
+    } catch (error) {
+      logger.error('cache delete failed: ', { key: key, message: (error as Error).message });
+    }
   }
 }
-
-

@@ -10,12 +10,7 @@ interface ICacheOptions {
   restaurantScoped?: boolean;
 }
 
-export function cacheLayer({
-  ttl = 3600,
-  userScoped = false,
-  branchScoped = false,
-  restaurantScoped = false,
-}: ICacheOptions = {}) {
+export function cacheLayer({ ttl = 3600, userScoped = false, branchScoped = false, restaurantScoped = false }: ICacheOptions = {}) {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       const cacheProvider: CacheProvider = container.resolve<CacheProvider>(tokens.CacheProvider);
@@ -51,7 +46,7 @@ export function cacheLayer({
       };
       return next();
     } catch (error) {
-      next(error);
+      next();
     }
   };
 }

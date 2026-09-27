@@ -97,18 +97,17 @@ export async function createBranch(data: Partial<Branch>): Promise<Branch> {
 }
 
 export async function updateBranch(id: number, data: Partial<Branch>): Promise<Branch> {
-  const mapping: Record<string, unknown> = {};
-  mapping.updated_at = new Date();
+  const mapping: Record<string, unknown> = { updated_at: new Date() };
 
-  if (data.addressText !== undefined) mapping.address_text = data.addressText;
-  if (data.label !== undefined) mapping.label = data.label;
-  if (data.lng !== undefined) mapping.lng = data.lng;
-  if (data.lat !== undefined) mapping.lat = data.lat;
-  if (data.acceptOrders !== undefined) mapping.accept_orders = data.acceptOrders;
-  if (data.opensAt !== undefined) mapping.opens_at = data.opensAt;
-  if (data.closesAt !== undefined) mapping.closes_at = data.closesAt;
-  if (data.deliveryRadius !== undefined) mapping.delivery_radius = data.deliveryRadius;
-  if (data.currency !== undefined) mapping.currency = data.currency;
+  if (data.lng !== null) mapping.lng = data.lng;
+  if (data.lat !== null) mapping.lat = data.lat;
+  if (data.label !== null) mapping.label = data.label;
+  if (data.opensAt !== null) mapping.opens_at = data.opensAt;
+  if (data.currency !== null) mapping.currency = data.currency;
+  if (data.closesAt !== null) mapping.closes_at = data.closesAt;
+  if (data.addressText !== null) mapping.address_text = data.addressText;
+  if (data.acceptOrders !== null) mapping.accept_orders = data.acceptOrders;
+  if (data.deliveryRadius !== null) mapping.delivery_radius = data.deliveryRadius;
 
   const [row] = await db('restaurant_branches').where('id', id).update(mapping).returning(BRANCH_COLUMNS);
 
@@ -137,8 +136,8 @@ export async function findBranchById(id: number): Promise<Branch | null> {
   return row ? toEntity(row) : null;
 }
 
-export async function findBranchesIds(ids: number[]): Promise<Branch[]> {
-  const rows = await db('restaurant_branches').whereIn('id', ids).select(BRANCH_COLUMNS);
+export async function findBranchesIds(restaurantId: number, ids: number[]): Promise<Branch[]> {
+  const rows = await db('restaurant_branches').whereIn('id', ids).andWhere('restaurant_id', restaurantId).select(BRANCH_COLUMNS);
   return rows.map(toEntity);
 }
 
